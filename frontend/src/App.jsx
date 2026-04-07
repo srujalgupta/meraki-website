@@ -4,6 +4,9 @@ import axios from "axios";
 import { Routes, Route, useNavigate, useParams } from "react-router-dom";
 import { FaYoutube, FaInstagram, FaLinkedin, FaWhatsapp } from "react-icons/fa";
 
+/* ================= API BASE ================= */
+const API = "https://meraki-website.onrender.com";
+
 /* ================= NAVBAR ================= */
 function Navbar() {
   return (
@@ -56,11 +59,11 @@ function Home() {
 
   useEffect(() => {
     axios
-      .get("https://meraki-backend.onrender.com/trips")
+      .get(`${API}/trips`) // ✅ FIXED URL
       .then((res) => setTrips(res.data || []))
       .catch((err) => {
         console.log("API Error:", err);
-        setTrips([]); // prevent crash
+        setTrips([]);
       });
   }, []);
 
@@ -75,8 +78,8 @@ function Home() {
             className="bg-white/10 p-4 rounded-xl hover:scale-105 cursor-pointer">
 
             <img src={trip.image} className="h-60 w-full object-cover" />
-            <h2>{trip.title}</h2>
-            <p>₹{trip.price}</p>
+            <h2 className="mt-2 font-semibold">{trip.title}</h2>
+            <p className="text-yellow-400">₹{trip.price}</p>
 
           </div>
         ))}
@@ -94,7 +97,7 @@ function TripDetail() {
 
   useEffect(() => {
     axios
-      .get("https://meraki-backend.onrender.com/trips")
+      .get(`${API}/trips`) // ✅ FIXED URL
       .then((res) => {
         const index = Number(id);
         if (!isNaN(index) && res.data && res.data[index]) {
@@ -111,7 +114,12 @@ function TripDetail() {
   return (
     <div className="bg-black text-white min-h-screen">
       <Navbar />
-      <h1 className="p-10 text-3xl">{trip.title}</h1>
+      <div className="p-10">
+        <h1 className="text-3xl font-bold">{trip.title}</h1>
+        <img src={trip.image} className="mt-6 w-full max-w-xl rounded-lg" />
+        <p className="mt-4 text-lg text-yellow-400">₹{trip.price}</p>
+        <p className="mt-2 text-gray-400">{trip.location}</p>
+      </div>
     </div>
   );
 }
