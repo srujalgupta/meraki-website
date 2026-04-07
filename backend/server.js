@@ -3,11 +3,17 @@ const cors = require("cors");
 
 const app = express();
 
-// allow all origins (for now)
+// ✅ allow all origins (for now)
 app.use(cors());
 
 app.use(express.json());
 
+// ✅ root test route
+app.get("/", (req, res) => {
+  res.send("Backend is working 🚀");
+});
+
+// ✅ trips route
 app.get("/trips", (req, res) => {
   res.json([
     {
@@ -34,5 +40,5 @@ app.get("/trips", (req, res) => {
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log("Server running");
+  console.log("Server running on port", PORT);
 });
