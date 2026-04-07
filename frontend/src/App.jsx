@@ -150,7 +150,7 @@ function Home() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    axios.get("https://abc123.ngrok-free.dev/trips")
+    axios.get("https://meraki-backend.onrender.com/trips")
       .then(res => setTrips(res.data));
   }, []);
 
@@ -233,7 +233,7 @@ function TripDetail() {
   });
 
   useEffect(() => {
-    axios.get("http://localhost:5000/trips")
+    axios.get("https://meraki-backend.onrender.com/trips")
       .then(res => {
         const index = Number(id);
         if (!isNaN(index) && res.data && res.data[index]) {
