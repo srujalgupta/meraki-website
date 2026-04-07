@@ -3,10 +3,8 @@ const cors = require("cors");
 
 const app = express();
 
-// ✅ FIX CORS
-app.use(cors({
-  origin: "https://meraki-website-1zna.vercel.app"
-}));
+// allow all origins (for now)
+app.use(cors());
 
 app.use(express.json());
 
@@ -33,6 +31,8 @@ app.get("/trips", (req, res) => {
   ]);
 });
 
-app.listen(5000, () => {
-  console.log("Server running on port 5000");
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log("Server running");
 });
