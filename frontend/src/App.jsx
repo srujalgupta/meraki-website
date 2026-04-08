@@ -73,7 +73,7 @@ function Navbar() {
   );
 }
 
-function WhyUs() {
+  function WhyUs() {
   const features = [
     {
       title: "SAFETY FIRST",
@@ -83,7 +83,7 @@ function WhyUs() {
     {
       title: "ECO-FRIENDLY COMMITMENT",
       desc: "Our tree-planting initiative neutralizes your carbon footprint, promoting responsible travel and making a positive impact on the environment.",
-      icon: "🌿",
+      icon: "🌱",
     },
     {
       title: "COMMUNITY OF EXPLORERS",
@@ -93,26 +93,32 @@ function WhyUs() {
     {
       title: "SEAMLESS, PASSIONATE SERVICE",
       desc: "We handle all trip details to ensure a smooth experience, driven by our love for travel and a commitment to making your journey memorable.",
-      icon: "✨",
+      icon: "❤️",
     },
   ];
 
   return (
-    <section className="relative z-10 py-24 text-white">
+    <section id="about" className="relative z-10 bg-transparent pt-32 pb-20 text-white">
       <div className="mx-auto max-w-7xl px-6">
-        <h2 className="mb-14 text-center text-4xl font-bold text-orange-400 md:text-5xl">
-          Why Us
+        <h2 className="mx-auto mb-16 w-fit border-b border-orange-400/40 pb-6 text-center text-4xl font-light tracking-[0.3em] text-orange-400 md:text-6xl lg:text-7xl">
+          Why The Meraki Tribe Stands Out
         </h2>
 
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
           {features.map((feature, index) => (
             <article
               key={index}
-              className="min-h-[320px] rounded-2xl border border-white/10 bg-white p-7 text-black shadow-xl"
+              className="group min-h-[380px] overflow-hidden rounded-2xl bg-gradient-to-br from-white to-gray-50 p-8 text-black shadow-xl backdrop-blur-sm transition-all duration-700 hover:-translate-y-4 hover:scale-[1.02] hover:shadow-2xl hover:ring-8 ring-orange-400/20 hover:bg-gradient-to-br hover:from-orange-50 hover:to-white"
             >
-              <div className="text-4xl">{feature.icon}</div>
-              <h3 className="mt-5 text-xl font-bold">{feature.title}</h3>
-              <p className="mt-4 leading-7 text-gray-700">{feature.desc}</p>
+              <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-r from-orange-400/20 to-orange-500/20 text-3xl group-hover:scale-110 group-hover:bg-gradient-to-r group-hover:from-orange-400/40 group-hover:to-orange-500/40 transition-all duration-500">
+                {feature.icon}
+              </div>
+              <h3 className="mb-4 text-2xl font-black leading-tight tracking-tight group-hover:text-orange-600">
+                {feature.title}
+              </h3>
+              <p className="text-base leading-relaxed text-gray-700 group-hover:text-gray-800">
+                {feature.desc}
+              </p>
             </article>
           ))}
         </div>
@@ -148,7 +154,7 @@ function Reviews() {
   const duplicatedReviews = [...reviews, ...reviews];
 
   return (
-    <section className="py-24 text-white" id="reviews">
+    <section id="reviews" className="py-24 text-white">
       <div className="mx-auto max-w-7xl px-6">
         <h2 className="mb-4 text-center text-4xl font-bold text-orange-400">
           Traveler Reviews
@@ -262,7 +268,7 @@ function Home() {
       <LiveBackground />
       <Navbar />
 
-      <section className="mx-auto max-w-7xl px-4 pb-10 pt-32 sm:px-6 sm:pb-12 sm:pt-36 md:pt-44">
+      <section id="trips" className="mx-auto max-w-7xl px-6 pb-12 pt-28">
         <div className="mb-12 max-w-4xl animate-fadeInUp sm:mb-16">
           <p className="mb-3 text-[11px] uppercase tracking-[0.3em] text-orange-400 sm:mb-4 sm:text-sm sm:tracking-[0.4em]">
             Adventure reimagined
@@ -529,7 +535,7 @@ Total Price: ₹${trip.price * people}`;
 
 function Footer() {
   return (
-    <footer className="relative z-10 mt-2 bg-black text-white">
+    <footer id="contact" className="relative z-10 mt-2 bg-black text-white">
       <div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 md:grid-cols-2 lg:grid-cols-4">
         <div>
           <h3 className="mb-6 border-b border-orange-400 pb-2 text-2xl font-semibold">
@@ -546,9 +552,21 @@ function Footer() {
             Backpacking Trips
           </h3>
           <ul className="space-y-2 text-gray-300">
-            <li>Spiti Valley</li>
-            <li>Kashmir Valley</li>
-            <li>Zanskar Valley</li>
+            <li>
+              <Link to="/trip/1" className="hover:text-orange-400">
+                Spiti Valley
+              </Link>
+            </li>
+            <li>
+              <Link to="/trip/2" className="hover:text-orange-400">
+                Goa Escape
+              </Link>
+            </li>
+            <li>
+              <Link to="/trip/6" className="hover:text-orange-400">
+                Manali Adventure
+              </Link>
+            </li>
           </ul>
         </div>
 
@@ -557,8 +575,26 @@ function Footer() {
             Quick Links
           </h3>
           <ul className="space-y-2 text-gray-300">
-            <li>About Us</li>
-            <li>Contact Us</li>
+            <li>
+              <a href="#about" className="hover:text-orange-400">
+                About Us
+              </a>
+            </li>
+            <li>
+              <a href="#trips" className="hover:text-orange-400">
+                Trips
+              </a>
+            </li>
+            <li>
+              <a href="#reviews" className="hover:text-orange-400">
+                Reviews
+              </a>
+            </li>
+            <li>
+              <a href="#contact" className="hover:text-orange-400">
+                Contact Us
+              </a>
+            </li>
             <li className="flex items-center gap-2">
               <FaInstagram className="text-pink-500" />
               <a
@@ -577,39 +613,91 @@ function Footer() {
           <h3 className="mb-6 border-b border-orange-400 pb-2 text-2xl font-semibold">
             Contact Us
           </h3>
+
           <ul className="space-y-3 text-gray-300">
             <li className="flex gap-2">
-              <FaMapMarkerAlt className="text-orange-400" />
-              Ahmedabad, Gujarat, India
+              <FaMapMarkerAlt className="mt-1 text-orange-400" />
+              <a
+                href="https://maps.app.goo.gl/FmbfyeuF7EhTaccW9?g_st=iwb"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-orange-400"
+              >
+                The Meraki Tribe, Raj Nagar Extension, Ghaziabad, Uttar Pradesh 201301
+              </a>
             </li>
+
             <li className="flex gap-2">
-              <FaPhoneAlt className="text-orange-400" />
+              <FaPhoneAlt className="mt-1 text-orange-400" />
               <div className="flex flex-col">
-                <span>+91 96623 51358</span>
-                <span>+91 90270 59288</span>
+                <a href="tel:+919662351358" className="hover:text-orange-400">
+                  +91 96623 51358
+                </a>
+                <a href="tel:+919027059288" className="hover:text-orange-400">
+                  +91 90270 59288
+                </a>
               </div>
             </li>
+
             <li className="flex gap-2">
-              <FaEnvelope className="text-orange-400" />
-              info.merakitribe@gmail.com
+              <FaEnvelope className="mt-1 text-orange-400" />
+              <a
+                href="mailto:info.merakitribe@gmail.com"
+                className="hover:text-orange-400"
+              >
+                info.merakitribe@gmail.com
+              </a>
             </li>
+
             <li className="flex gap-2">
-              <FaClock className="text-orange-400" />
-              10:00 AM to 10:00 PM
+              <FaClock className="mt-1 text-orange-400" />
+              <span>10:00 AM to 10:00 PM</span>
             </li>
           </ul>
+
+          <div className="mt-8 overflow-hidden rounded-2xl border border-orange-400/30 bg-white/10 backdrop-blur-sm">
+            <div className="h-56 w-full">
+              <iframe
+                title="The Meraki Tribe Location"
+                src="https://www.openstreetmap.org/export/embed.html?bbox=77.4300%2C28.6700%2C77.5000%2C28.7400&layer=mapnik&marker=28.7041%2C77.4497"
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                loading="lazy"
+              ></iframe>
+            </div>
+          </div>
+
+          <a
+            href="https://maps.app.goo.gl/FmbfyeuF7EhTaccW9?g_st=iwb"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-block text-sm font-medium text-orange-400 hover:text-orange-300"
+          >
+            Open exact location in Google Maps
+          </a>
         </div>
       </div>
 
       <div className="border-t border-white/10 bg-zinc-800 px-6 py-6 text-sm text-gray-300">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 md:flex-row">
-          <p>The Meraki Tribe All Rights Reserved</p>
-          <div className="flex gap-3">
-            <span>PayPal</span>
-            <span>Visa</span>
-            <span>MasterCard</span>
-            <span>UPI</span>
-            <span>GPay</span>
+          <p>The Meraki Tribe. All Rights Reserved.</p>
+          <div className="flex flex-wrap gap-3">
+            <span className="rounded-full border border-white/10 px-3 py-1">
+              PayPal
+            </span>
+            <span className="rounded-full border border-white/10 px-3 py-1">
+              Visa
+            </span>
+            <span className="rounded-full border border-white/10 px-3 py-1">
+              MasterCard
+            </span>
+            <span className="rounded-full border border-white/10 px-3 py-1">
+              UPI
+            </span>
+            <span className="rounded-full border border-white/10 px-3 py-1">
+              GPay
+            </span>
           </div>
         </div>
       </div>
