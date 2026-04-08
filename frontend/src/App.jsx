@@ -51,7 +51,7 @@ function Navbar() {
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 text-white sm:px-6">
         <Link to="/" className="flex min-w-0 items-center gap-3">
           <img
-            src="logo.png"
+            src="/logo.png"
             alt="logo"
             className="h-10 w-10 rounded-full object-cover transition duration-500 hover:scale-105 sm:h-11 sm:w-11"
           />
