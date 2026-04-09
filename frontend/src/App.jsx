@@ -329,6 +329,7 @@ function TripDetail() {
   const [selectedImage, setSelectedImage] = useState(null);
   const [travelDate, setTravelDate] = useState("");
   const [people, setPeople] = useState(1);
+  const [activeSection, setActiveSection] = useState("itinerary");
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -360,10 +361,10 @@ function TripDetail() {
       <LiveBackground />
       <Navbar />
 
-      <section className="mx-auto max-w-6xl px-4 pb-12 pt-28 sm:px-6 sm:pt-32">
+      <section className="mx-auto max-w-6xl px-6 pb-12 pt-28">
         <button
           onClick={() => navigate(-1)}
-          className="mb-6 rounded-lg border border-white/10 bg-white/10 px-4 py-2 transition duration-300 hover:bg-white/15 active:scale-[0.98]"
+          className="mb-6 rounded-lg border border-white/10 bg-white/10 px-4 py-2 transition hover:bg-white/15"
         >
           Back
         </button>
@@ -377,25 +378,23 @@ function TripDetail() {
         )}
 
         {!loading && !error && trip && (
-          <article className="overflow-hidden rounded-3xl border border-white/10 bg-white/5 backdrop-blur-md animate-fadeInUp">
+          <article className="overflow-hidden rounded-3xl border border-white/10 bg-white/5 backdrop-blur-md">
             <img
               src={trip.image}
               alt={trip.title}
-              className="h-60 w-full object-cover sm:h-72 md:h-[28rem]"
+              className="h-72 w-full object-cover md:h-[28rem]"
             />
 
-            <div className="grid gap-6 p-4 sm:p-6 md:gap-8 md:p-8 lg:grid-cols-3">
-              <div className="lg:col-span-2">
+            <div className="grid gap-8 p-6 md:grid-cols-3 md:p-8">
+              <div className="md:col-span-2">
                 <p className="mb-3 text-sm uppercase tracking-[0.3em] text-orange-400">
                   {trip.location || "Featured destination"}
                 </p>
 
-                <h1 className="text-3xl font-bold sm:text-4xl">
-                  {trip.title}
-                </h1>
+                <h1 className="text-4xl font-bold">{trip.title}</h1>
 
-                <p className="mt-4 text-xl font-semibold text-orange-400 sm:text-2xl">
-                  ₹{trip.price * people}
+                <p className="mt-4 text-2xl font-semibold text-orange-400">
+                  ₹{trip.price}
                 </p>
 
                 <p className="mt-6 leading-8 text-gray-300">
@@ -403,68 +402,155 @@ function TripDetail() {
                     "A curated travel experience with beautiful views, smooth planning, and a vibrant explorer community."}
                 </p>
 
-                <div className="mt-8">
-                  <h2 className="text-2xl font-bold text-orange-400">
+                <div className="mt-10 flex flex-wrap gap-3">
+                  <button
+                    onClick={() => setActiveSection("itinerary")}
+                    className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
+                      activeSection === "itinerary"
+                        ? "bg-orange-500 text-white"
+                        : "border border-white/20 bg-white/10 text-gray-300 hover:bg-white/20"
+                    }`}
+                  >
                     Itinerary
-                  </h2>
-                  <ul className="mt-4 space-y-2 text-gray-300">
-                    <li>Day 1 - Arrival & Check-in</li>
-                    <li>Day 2 - Sightseeing</li>
-                    <li>Day 3 - Adventure Activities</li>
-                    <li>Day 4 - Departure</li>
-                  </ul>
-                </div>
+                  </button>
 
-                <div className="mt-8">
-                  <h2 className="text-2xl font-bold text-green-400">
+                  <button
+                    onClick={() => setActiveSection("inclusions")}
+                    className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
+                      activeSection === "inclusions"
+                        ? "bg-green-500 text-white"
+                        : "border border-white/20 bg-white/10 text-gray-300 hover:bg-white/20"
+                    }`}
+                  >
                     Inclusions
-                  </h2>
-                  <ul className="mt-4 space-y-2 text-gray-300">
-                    <li>Stay</li>
-                    <li>Meals</li>
-                    <li>Transport</li>
-                  </ul>
-                </div>
+                  </button>
 
-                <div className="mt-8">
-                  <h2 className="text-2xl font-bold text-red-400">
+                  <button
+                    onClick={() => setActiveSection("exclusions")}
+                    className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
+                      activeSection === "exclusions"
+                        ? "bg-red-500 text-white"
+                        : "border border-white/20 bg-white/10 text-gray-300 hover:bg-white/20"
+                    }`}
+                  >
                     Exclusions
-                  </h2>
-                  <ul className="mt-4 space-y-2 text-gray-300">
-                    <li>Personal expenses</li>
-                    <li>Extra activities</li>
-                  </ul>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveSection("gallery")}
+                    className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
+                      activeSection === "gallery"
+                        ? "bg-purple-500 text-white"
+                        : "border border-white/20 bg-white/10 text-gray-300 hover:bg-white/20"
+                    }`}
+                  >
+                    Gallery
+                  </button>
                 </div>
 
-                {trip.gallery && trip.gallery.length > 0 && (
-                  <div className="mt-8">
-                    <h2 className="mb-4 text-2xl font-bold text-orange-400">
-                      Trip Gallery
-                    </h2>
-
-                    <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-                      {trip.gallery.map((img, index) => (
-                        <img
-                          key={index}
-                          src={img}
-                          alt={`${trip.title} ${index + 1}`}
-                          onClick={() => setSelectedImage(img)}
-                          className="h-32 w-full cursor-pointer rounded-xl object-cover transition duration-300 hover:scale-105 sm:h-40"
-                        />
-                      ))}
+                <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md">
+                  {activeSection === "itinerary" && (
+                    <div>
+                      <h2 className="mb-4 text-2xl font-bold text-orange-400">
+                        Itinerary
+                      </h2>
+                      <ul className="space-y-3 text-gray-300">
+                        <li className="rounded-xl border border-white/10 bg-black/20 p-4">
+                          Day 1 - Arrival and check-in
+                        </li>
+                        <li className="rounded-xl border border-white/10 bg-black/20 p-4">
+                          Day 2 - Sightseeing and local exploration
+                        </li>
+                        <li className="rounded-xl border border-white/10 bg-black/20 p-4">
+                          Day 3 - Adventure activities and free time
+                        </li>
+                        <li className="rounded-xl border border-white/10 bg-black/20 p-4">
+                          Day 4 - Checkout and departure
+                        </li>
+                      </ul>
                     </div>
-                  </div>
-                )}
+                  )}
+
+                  {activeSection === "inclusions" && (
+                    <div>
+                      <h2 className="mb-4 text-2xl font-bold text-green-400">
+                        Inclusions
+                      </h2>
+                      <ul className="space-y-3 text-gray-300">
+                        <li className="rounded-xl border border-green-500/20 bg-green-500/10 p-4">
+                          Stay accommodation
+                        </li>
+                        <li className="rounded-xl border border-green-500/20 bg-green-500/10 p-4">
+                          Meals
+                        </li>
+                        <li className="rounded-xl border border-green-500/20 bg-green-500/10 p-4">
+                          Transport
+                        </li>
+                        <li className="rounded-xl border border-green-500/20 bg-green-500/10 p-4">
+                          Trip coordination and support
+                        </li>
+                      </ul>
+                    </div>
+                  )}
+
+                  {activeSection === "exclusions" && (
+                    <div>
+                      <h2 className="mb-4 text-2xl font-bold text-red-400">
+                        Exclusions
+                      </h2>
+                      <ul className="space-y-3 text-gray-300">
+                        <li className="rounded-xl border border-red-500/20 bg-red-500/10 p-4">
+                          Personal expenses
+                        </li>
+                        <li className="rounded-xl border border-red-500/20 bg-red-500/10 p-4">
+                          Extra activities
+                        </li>
+                        <li className="rounded-xl border border-red-500/20 bg-red-500/10 p-4">
+                          Shopping and personal purchases
+                        </li>
+                        <li className="rounded-xl border border-red-500/20 bg-red-500/10 p-4">
+                          Anything not mentioned in inclusions
+                        </li>
+                      </ul>
+                    </div>
+                  )}
+
+                  {activeSection === "gallery" && (
+                    <div>
+                      <h2 className="mb-4 text-2xl font-bold text-purple-400">
+                        Trip Gallery
+                      </h2>
+
+                      {trip.gallery && trip.gallery.length > 0 ? (
+                        <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+                          {trip.gallery.map((img, index) => (
+                            <img
+                              key={index}
+                              src={img}
+                              alt={`${trip.title} ${index + 1}`}
+                              onClick={() => setSelectedImage(img)}
+                              className="h-40 w-full cursor-pointer rounded-xl object-cover transition hover:scale-105"
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-400">
+                          No gallery images available for this trip.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div className="lg:col-span-1">
-                <div className="rounded-2xl border border-orange-400/20 bg-white/10 p-5 shadow-xl backdrop-blur-md lg:sticky lg:top-28 lg:p-6">
+              <div className="md:col-span-1">
+                <div className="sticky top-28 rounded-2xl border border-orange-400/20 bg-white/10 p-6 shadow-xl backdrop-blur-md">
                   <h2 className="mb-4 text-xl font-bold text-orange-400">
                     Book This Trip
                   </h2>
 
                   <p className="mb-4 text-sm font-semibold text-red-400">
-                    Only few slots left!
+                    ⚠ Only few slots left!
                   </p>
 
                   <input
@@ -472,7 +558,7 @@ function TripDetail() {
                     min={today}
                     value={travelDate}
                     onChange={(e) => setTravelDate(e.target.value)}
-                    className="mb-4 w-full rounded border border-white/20 bg-black/50 p-3 text-white outline-none"
+                    className="mb-4 w-full rounded border border-white/20 bg-black/50 p-2"
                   />
 
                   <input
@@ -480,7 +566,7 @@ function TripDetail() {
                     min="1"
                     value={people}
                     onChange={(e) => setPeople(Number(e.target.value))}
-                    className="mb-4 w-full rounded border border-white/20 bg-black/50 p-3 text-white outline-none"
+                    className="mb-4 w-full rounded border border-white/20 bg-black/50 p-2"
                   />
 
                   <div className="mb-4 rounded-lg border border-white/10 bg-black/40 p-3">
@@ -492,19 +578,19 @@ function TripDetail() {
 
                   <button
                     onClick={() => {
-                      const message = `Hello, I want to book this trip.
-
+                      const message = `Hello, I want to book this trip:
 Trip: ${trip.title}
 Date: ${travelDate || "Not selected"}
 People: ${people}
 Total Price: ₹${trip.price * people}`;
 
-                      const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+                      const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+                        message
+                      )}`;
                       window.open(url, "_blank");
                     }}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-500 px-6 py-3 text-white transition duration-300 hover:bg-green-600 active:scale-[0.98]"
+                    className="w-full rounded-xl bg-green-500 px-6 py-3 text-white transition hover:bg-green-600"
                   >
-                    <FaWhatsapp />
                     Book Now
                   </button>
                 </div>
