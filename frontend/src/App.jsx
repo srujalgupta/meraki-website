@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { Routes, Route, useNavigate, useParams, Link } from "react-router-dom";
 import {
@@ -10,18 +10,158 @@ import {
   FaPhoneAlt,
   FaEnvelope,
   FaClock,
+  FaHeart,
+  FaRegHeart,
+  FaSearch,
+  FaStar,
+  FaCloudSun,
+  FaUsers,
+  FaCalendarAlt,
+  FaFilter,
+  FaChevronDown,
+  FaChevronUp,
 } from "react-icons/fa";
 import API from "./api";
 
 const WHATSAPP_NUMBER = "919662351358";
 
-const openWhatsAppBooking = (trip, people = 1, travelDate = "Not selected") => {
+const destinationMeta = {
+  spiti: {
+    bestTime: "June to September",
+    weather: "Cold and scenic weather, usually between 5°C to 18°C during the main season.",
+  },
+  goa: {
+    bestTime: "November to February",
+    weather: "Warm and pleasant beach weather, usually between 22°C to 32°C.",
+  },
+  manali: {
+    bestTime: "October to June",
+    weather: "Cool mountain weather, usually between 4°C to 20°C depending on the month.",
+  },
+  default: {
+    bestTime: "October to March",
+    weather: "Pleasant destination weather with seasonal changes based on travel dates.",
+  },
+};
+
+const fallbackReviews = [
+  {
+    id: 1,
+    name: "Aarav Sharma",
+    place: "Delhi",
+    tripName: "Spiti Valley Adventure",
+    month: "June 2025",
+    rating: 5,
+    image:
+      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80",
+    text: "Amazing trip planning and very smooth coordination. Everything felt premium and safe.",
+  },
+  {
+    id: 2,
+    name: "Priya Mehta",
+    place: "Ahmedabad",
+    tripName: "Goa Escape",
+    month: "December 2025",
+    rating: 5,
+    image:
+      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&auto=format&fit=crop&q=80",
+    text: "Loved the group vibe and the support team. It truly felt like traveling with a tribe.",
+  },
+  {
+    id: 3,
+    name: "Rohan Verma",
+    place: "Pune",
+    tripName: "Manali Adventure",
+    month: "March 2026",
+    rating: 5,
+    image:
+      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&auto=format&fit=crop&q=80",
+    text: "Best backpacking experience I have had. The itinerary and stays were very well managed.",
+  },
+  {
+    id: 4,
+    name: "Sana Khan",
+    place: "Mumbai",
+    tripName: "Spiti Valley Adventure",
+    month: "July 2025",
+    rating: 5,
+    image:
+      "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=300&auto=format&fit=crop&q=80",
+    text: "The booking process was easy and the whole trip was unforgettable. Highly recommended.",
+  },
+];
+
+const defaultFAQs = [
+  {
+    question: "How do I book a trip?",
+    answer:
+      "Select your preferred batch, enter traveler details, and click Book Now. Your trip details will be sent directly on WhatsApp for confirmation.",
+  },
+  {
+    question: "Are meals included in the package?",
+    answer:
+      "Meals depend on the package. Please check the inclusions section of each trip page for exact details.",
+  },
+  {
+    question: "Can solo travelers join these trips?",
+    answer:
+      "Yes, solo travelers are welcome. Our group trips are designed to help like-minded travelers connect easily.",
+  },
+  {
+    question: "Is it safe for female travelers?",
+    answer:
+      "Yes, we focus on safe coordination and comfortable travel experiences, especially for solo and female travelers.",
+  },
+  {
+    question: "What happens after booking on WhatsApp?",
+    answer:
+      "Our team confirms your slot, shares payment details, and guides you with all next travel instructions.",
+  },
+];
+
+const getTripMeta = (trip) => {
+  const combined = `${trip?.title || ""} ${trip?.location || ""}`.toLowerCase();
+
+  if (combined.includes("spiti")) return destinationMeta.spiti;
+  if (combined.includes("goa")) return destinationMeta.goa;
+  if (combined.includes("manali")) return destinationMeta.manali;
+
+  return destinationMeta.default;
+};
+
+const getBatchDates = (trip) => {
+  if (trip?.batchDates?.length) return trip.batchDates;
+  return [
+    { date: "2026-04-20", slots: 8 },
+    { date: "2026-05-10", slots: 5 },
+    { date: "2026-06-01", slots: 3 },
+  ];
+};
+
+const getTripFAQs = (trip) => {
+  if (trip?.faqs?.length) return trip.faqs;
+  return defaultFAQs;
+};
+
+const openWhatsAppBooking = (
+  trip,
+  people = 1,
+  travelDate = "Not selected",
+  pickupCity = "Not selected",
+  roomType = "Not selected",
+  specialRequest = "None"
+) => {
+  const totalPrice = (trip?.price || 0) * people;
+
   const message = `Hello, I want to book this trip:
 🌍 Trip: ${trip.title}
 📍 Location: ${trip.location || "N/A"}
 📅 Date: ${travelDate}
 👥 People: ${people}
-💰 Total Price: ₹${trip.price * people}
+🚐 Pickup City: ${pickupCity}
+🛏 Room Type: ${roomType}
+📝 Special Request: ${specialRequest}
+💰 Total Price: ₹${totalPrice}
 Please share details.`;
 
   const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
@@ -45,7 +185,7 @@ function LiveBackground() {
   );
 }
 
-function Navbar() {
+function Navbar({ wishlistCount = 0 }) {
   return (
     <header className="fixed top-0 left-0 z-50 w-full border-b border-orange-400/20 bg-black/70 backdrop-blur-md animate-fadeInSoft">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 text-white sm:px-6">
@@ -60,20 +200,26 @@ function Navbar() {
           </h2>
         </Link>
 
-        <a
-          href="https://wa.me/919662351358"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="animate-pulseSoft flex min-h-[44px] items-center gap-2 rounded-full bg-green-500 px-4 py-2 text-sm font-semibold text-white transition duration-300 hover:scale-105 hover:bg-green-600"
-        >
-          Book Now
-        </a>
+        <div className="flex items-center gap-3">
+          <div className="hidden rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-white sm:block">
+            Wishlist: <span className="font-semibold text-orange-300">{wishlistCount}</span>
+          </div>
+
+          <a
+            href="https://wa.me/919662351358"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="animate-pulseSoft flex min-h-[44px] items-center gap-2 rounded-full bg-green-500 px-4 py-2 text-sm font-semibold text-white transition duration-300 hover:scale-105 hover:bg-green-600"
+          >
+            Book Now
+          </a>
+        </div>
       </div>
     </header>
   );
 }
 
-  function WhyUs() {
+function WhyUs() {
   const features = [
     {
       title: "SAFETY FIRST",
@@ -127,30 +273,7 @@ function Navbar() {
   );
 }
 
-function Reviews() {
-  const reviews = [
-    {
-      name: "Aarav Sharma",
-      place: "Delhi",
-      text: "Amazing trip planning and very smooth coordination. Everything felt premium and safe.",
-    },
-    {
-      name: "Priya Mehta",
-      place: "Ahmedabad",
-      text: "Loved the group vibe and the support team. It truly felt like traveling with a tribe.",
-    },
-    {
-      name: "Rohan Verma",
-      place: "Pune",
-      text: "Best backpacking experience I have had. The itinerary and stays were very well managed.",
-    },
-    {
-      name: "Sana Khan",
-      place: "Mumbai",
-      text: "The booking process was easy and the whole trip was unforgettable. Highly recommended.",
-    },
-  ];
-
+function Reviews({ reviews }) {
   const duplicatedReviews = [...reviews, ...reviews];
 
   return (
@@ -167,15 +290,31 @@ function Reviews() {
           <div className="flex w-max animate-marquee gap-6">
             {duplicatedReviews.map((review, index) => (
               <div
-                key={index}
-                className="w-[320px] shrink-0 rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md"
+                key={`${review.id}-${index}`}
+                className="w-[340px] shrink-0 rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md"
               >
-                <div className="mb-3 text-xl text-orange-400">★★★★★</div>
+                <div className="mb-4 flex items-center gap-4">
+                  <img
+                    src={review.image}
+                    alt={review.name}
+                    className="h-14 w-14 rounded-full object-cover"
+                  />
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">{review.name}</h3>
+                    <p className="text-sm text-gray-400">
+                      {review.place} • {review.month}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mb-3 flex items-center gap-1 text-orange-400">
+                  {Array.from({ length: review.rating }).map((_, i) => (
+                    <FaStar key={i} />
+                  ))}
+                </div>
+
                 <p className="leading-7 text-gray-200">“{review.text}”</p>
-                <h3 className="mt-5 text-lg font-semibold text-white">
-                  {review.name}
-                </h3>
-                <p className="text-sm text-gray-400">{review.place}</p>
+                <h3 className="mt-5 text-lg font-semibold text-white">{review.tripName}</h3>
               </div>
             ))}
           </div>
@@ -185,15 +324,96 @@ function Reviews() {
   );
 }
 
-function TripCard({ trip, onClick }) {
+function SearchFilters({
+  searchTerm,
+  setSearchTerm,
+  selectedLocation,
+  setSelectedLocation,
+  sortBy,
+  setSortBy,
+  maxPrice,
+  setMaxPrice,
+  locations,
+}) {
+  return (
+    <div className="mb-10 rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur-md">
+      <div className="mb-5 flex items-center gap-2 text-orange-400">
+        <FaFilter />
+        <h3 className="text-xl font-semibold text-white">Search & Filters</h3>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="relative">
+          <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search trips..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="min-h-[48px] w-full rounded-xl border border-white/10 bg-black/40 py-3 pl-11 pr-4 text-white outline-none transition focus:border-orange-400"
+          />
+        </div>
+
+        <select
+          value={selectedLocation}
+          onChange={(e) => setSelectedLocation(e.target.value)}
+          className="min-h-[48px] w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none transition focus:border-orange-400"
+        >
+          <option value="">All Locations</option>
+          {locations.map((location, idx) => (
+            <option key={idx} value={location}>
+              {location}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
+          className="min-h-[48px] w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none transition focus:border-orange-400"
+        >
+          <option value="default">Sort By</option>
+          <option value="lowToHigh">Price: Low to High</option>
+          <option value="highToLow">Price: High to Low</option>
+          <option value="trending">Trending First</option>
+          <option value="name">Name A-Z</option>
+        </select>
+
+        <input
+          type="number"
+          placeholder="Max price"
+          value={maxPrice}
+          onChange={(e) => setMaxPrice(e.target.value)}
+          className="min-h-[48px] w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none transition focus:border-orange-400"
+        />
+      </div>
+    </div>
+  );
+}
+
+function TripCard({ trip, onClick, isWishlisted, onToggleWishlist }) {
+  const meta = getTripMeta(trip);
+  const batches = getBatchDates(trip);
+  const nextBatch = batches[0];
+
   return (
     <article className="touch-card glass-card group overflow-hidden rounded-3xl border border-white/10 transition duration-500 hover:-translate-y-3 hover:bg-white/10 hover:shadow-[0_25px_80px_rgba(0,0,0,0.45)]">
-      <div className="cursor-pointer overflow-hidden" onClick={onClick}>
+      <div className="relative cursor-pointer overflow-hidden" onClick={onClick}>
         <img
           src={trip.image}
           alt={trip.title}
           className="h-56 w-full object-cover transition duration-700 group-hover:scale-110 sm:h-64"
         />
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleWishlist(trip);
+          }}
+          className="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-md transition duration-300 hover:scale-110"
+        >
+          {isWishlisted ? <FaHeart className="text-red-500" /> : <FaRegHeart />}
+        </button>
       </div>
 
       <div className="p-4 sm:p-5">
@@ -220,6 +440,18 @@ function TripCard({ trip, onClick }) {
           {trip.description ||
             "A beautiful travel experience filled with scenic views, local culture, and memorable moments."}
         </p>
+
+        <div className="mt-4 space-y-2 rounded-2xl border border-white/10 bg-black/20 p-4">
+          <p className="flex items-center gap-2 text-sm text-orange-300">
+            <FaCalendarAlt /> Best time: {meta.bestTime}
+          </p>
+          <p className="flex items-center gap-2 text-sm text-cyan-300">
+            <FaCloudSun /> {meta.weather}
+          </p>
+          <p className="flex items-center gap-2 text-sm text-green-300">
+            <FaUsers /> Next batch: {nextBatch.date} • {nextBatch.slots} slots left
+          </p>
+        </div>
 
         <p className="mt-4 text-xl font-semibold text-orange-400 sm:text-2xl">
           ₹{trip.price}
@@ -248,8 +480,14 @@ function TripCard({ trip, onClick }) {
 
 function Home() {
   const [trips, setTrips] = useState([]);
+  const [reviews] = useState(fallbackReviews);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [wishlist, setWishlist] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedLocation, setSelectedLocation] = useState("");
+  const [sortBy, setSortBy] = useState("default");
+  const [maxPrice, setMaxPrice] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -263,10 +501,56 @@ function Home() {
       .finally(() => setLoading(false));
   }, []);
 
+  const locations = useMemo(() => {
+    return [...new Set(trips.map((trip) => trip.location).filter(Boolean))];
+  }, [trips]);
+
+  const filteredTrips = useMemo(() => {
+    let updatedTrips = [...trips];
+
+    if (searchTerm.trim()) {
+      updatedTrips = updatedTrips.filter((trip) =>
+        `${trip.title} ${trip.location || ""} ${trip.description || ""}`
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase())
+      );
+    }
+
+    if (selectedLocation) {
+      updatedTrips = updatedTrips.filter((trip) => trip.location === selectedLocation);
+    }
+
+    if (maxPrice) {
+      updatedTrips = updatedTrips.filter((trip) => Number(trip.price) <= Number(maxPrice));
+    }
+
+    if (sortBy === "lowToHigh") {
+      updatedTrips.sort((a, b) => a.price - b.price);
+    } else if (sortBy === "highToLow") {
+      updatedTrips.sort((a, b) => b.price - a.price);
+    } else if (sortBy === "trending") {
+      updatedTrips.sort((a, b) => Number(b.trending) - Number(a.trending));
+    } else if (sortBy === "name") {
+      updatedTrips.sort((a, b) => a.title.localeCompare(b.title));
+    }
+
+    return updatedTrips;
+  }, [trips, searchTerm, selectedLocation, maxPrice, sortBy]);
+
+  const handleToggleWishlist = (trip) => {
+    setWishlist((prev) => {
+      const exists = prev.find((item) => item.id === trip.id);
+      if (exists) {
+        return prev.filter((item) => item.id !== trip.id);
+      }
+      return [...prev, trip];
+    });
+  };
+
   return (
     <main className="relative z-10 min-h-screen text-white">
       <LiveBackground />
-      <Navbar />
+      <Navbar wishlistCount={wishlist.length} />
 
       <section id="trips" className="mx-auto max-w-7xl px-6 pb-12 pt-28">
         <div className="mb-12 max-w-4xl animate-fadeInUp sm:mb-16">
@@ -274,16 +558,27 @@ function Home() {
             Adventure reimagined
           </p>
 
-        <h1 className="text-3xl font-extrabold leading-tight text-white sm:text-5xl md:text-7xl">
-  <span className="inline-block animate-floatSoft">Travel with stories,</span>
-  <span className="block text-orange-300 animate-floatSoft">not just itineraries.</span>
-</h1>
+          <h1 className="text-3xl font-extrabold leading-tight text-white sm:text-5xl md:text-7xl">
+            <span className="inline-block animate-floatSoft">Travel with stories,</span>
+            <span className="block text-orange-300 animate-floatSoft">not just itineraries.</span>
+          </h1>
 
           <p className="mt-4 max-w-2xl text-base leading-7 text-gray-300 sm:mt-6 sm:text-lg md:text-xl">
-            Discover unforgettable backpacking journeys and book instantly on
-            WhatsApp.
+            Discover unforgettable backpacking journeys and book instantly on WhatsApp.
           </p>
         </div>
+
+        <SearchFilters
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          selectedLocation={selectedLocation}
+          setSelectedLocation={setSelectedLocation}
+          sortBy={sortBy}
+          setSortBy={setSortBy}
+          maxPrice={maxPrice}
+          setMaxPrice={setMaxPrice}
+          locations={locations}
+        />
 
         {loading && <div className="py-10 text-gray-300">Loading trips...</div>}
 
@@ -293,9 +588,18 @@ function Home() {
           </div>
         )}
 
-        {!loading && !error && trips.length > 0 && (
+        {!loading && !error && filteredTrips.length === 0 && (
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center backdrop-blur-md">
+            <h3 className="text-2xl font-bold text-white">No trips found</h3>
+            <p className="mt-3 text-gray-300">
+              Try another search term or adjust your filters.
+            </p>
+          </div>
+        )}
+
+        {!loading && !error && filteredTrips.length > 0 && (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 sm:gap-8">
-            {trips.map((trip, index) => (
+            {filteredTrips.map((trip, index) => (
               <div
                 key={trip.id ?? index}
                 className="animate-fadeInUp"
@@ -304,6 +608,8 @@ function Home() {
                 <TripCard
                   trip={trip}
                   onClick={() => navigate(`/trip/${trip.id ?? index}`)}
+                  isWishlisted={wishlist.some((item) => item.id === trip.id)}
+                  onToggleWishlist={handleToggleWishlist}
                 />
               </div>
             ))}
@@ -312,10 +618,49 @@ function Home() {
       </section>
 
       <WhyUs />
-      <Reviews />
+      <Reviews reviews={reviews} />
       <Footer />
       <FloatingWhatsApp />
     </main>
+  );
+}
+
+function FAQSection({ faqs }) {
+  const [openIndex, setOpenIndex] = useState(0);
+
+  return (
+    <section className="mt-10 rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md">
+      <h2 className="mb-6 text-2xl font-bold text-orange-400">Frequently Asked Questions</h2>
+
+      <div className="space-y-4">
+        {faqs.map((faq, index) => {
+          const isOpen = openIndex === index;
+
+          return (
+            <div
+              key={index}
+              className="overflow-hidden rounded-2xl border border-white/10 bg-black/20"
+            >
+              <button
+                onClick={() => setOpenIndex(isOpen ? -1 : index)}
+                className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
+              >
+                <span className="font-semibold text-white">{faq.question}</span>
+                <span className="text-orange-400">
+                  {isOpen ? <FaChevronUp /> : <FaChevronDown />}
+                </span>
+              </button>
+
+              {isOpen && (
+                <div className="border-t border-white/10 px-5 py-4 text-gray-300">
+                  {faq.answer}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -329,7 +674,12 @@ function TripDetail() {
   const [selectedImage, setSelectedImage] = useState(null);
   const [travelDate, setTravelDate] = useState("");
   const [people, setPeople] = useState(1);
+  const [pickupCity, setPickupCity] = useState("");
+  const [roomType, setRoomType] = useState("Double Sharing");
+  const [specialRequest, setSpecialRequest] = useState("");
   const [activeSection, setActiveSection] = useState("itinerary");
+  const [wishlist, setWishlist] = useState([]);
+  const [selectedBatch, setSelectedBatch] = useState("");
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -339,8 +689,7 @@ function TripDetail() {
       .then((res) => {
         const trips = res.data;
         const selectedTrip =
-          trips.find((item) => String(item.id) === String(id)) ||
-          trips[Number(id)];
+          trips.find((item) => String(item.id) === String(id)) || trips[Number(id)];
 
         if (!selectedTrip) {
           setError("Trip not found.");
@@ -348,6 +697,12 @@ function TripDetail() {
         }
 
         setTrip(selectedTrip);
+
+        const batches = getBatchDates(selectedTrip);
+        if (batches.length > 0) {
+          setSelectedBatch(batches[0].date);
+          setTravelDate(batches[0].date);
+        }
       })
       .catch((err) => {
         console.error(err);
@@ -356,10 +711,26 @@ function TripDetail() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  const meta = getTripMeta(trip || {});
+  const faqs = getTripFAQs(trip || {});
+  const batchDates = getBatchDates(trip || {});
+  const selectedBatchInfo =
+    batchDates.find((batch) => batch.date === selectedBatch) || batchDates[0];
+
+  const toggleWishlist = () => {
+    if (!trip) return;
+
+    setWishlist((prev) => {
+      const exists = prev.find((item) => item.id === trip.id);
+      if (exists) return prev.filter((item) => item.id !== trip.id);
+      return [...prev, trip];
+    });
+  };
+
   return (
     <main className="relative min-h-screen bg-black text-white">
       <LiveBackground />
-      <Navbar />
+      <Navbar wishlistCount={wishlist.length} />
 
       <section className="mx-auto max-w-6xl px-6 pb-12 pt-28">
         <button
@@ -378,225 +749,304 @@ function TripDetail() {
         )}
 
         {!loading && !error && trip && (
-          <article className="overflow-hidden rounded-3xl border border-white/10 bg-white/5 backdrop-blur-md">
-            <img
-              src={trip.image}
-              alt={trip.title}
-              className="h-72 w-full object-cover md:h-[28rem]"
-            />
+          <>
+            <article className="overflow-hidden rounded-3xl border border-white/10 bg-white/5 backdrop-blur-md">
+              <div className="relative">
+                <img
+                  src={trip.image}
+                  alt={trip.title}
+                  className="h-72 w-full object-cover md:h-[28rem]"
+                />
 
-            <div className="grid gap-8 p-6 md:grid-cols-3 md:p-8">
-              <div className="md:col-span-2">
-                <p className="mb-3 text-sm uppercase tracking-[0.3em] text-orange-400">
-                  {trip.location || "Featured destination"}
-                </p>
-
-                <h1 className="text-4xl font-bold">{trip.title}</h1>
-
-                <p className="mt-4 text-2xl font-semibold text-orange-400">
-                  ₹{trip.price}
-                </p>
-
-                <p className="mt-6 leading-8 text-gray-300">
-                  {trip.description ||
-                    "A curated travel experience with beautiful views, smooth planning, and a vibrant explorer community."}
-                </p>
-
-                <div className="mt-10 flex flex-wrap gap-3">
-                  <button
-                    onClick={() => setActiveSection("itinerary")}
-                    className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
-                      activeSection === "itinerary"
-                        ? "bg-orange-500 text-white"
-                        : "border border-white/20 bg-white/10 text-gray-300 hover:bg-white/20"
-                    }`}
-                  >
-                    Itinerary
-                  </button>
-
-                  <button
-                    onClick={() => setActiveSection("inclusions")}
-                    className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
-                      activeSection === "inclusions"
-                        ? "bg-green-500 text-white"
-                        : "border border-white/20 bg-white/10 text-gray-300 hover:bg-white/20"
-                    }`}
-                  >
-                    Inclusions
-                  </button>
-
-                  <button
-                    onClick={() => setActiveSection("exclusions")}
-                    className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
-                      activeSection === "exclusions"
-                        ? "bg-red-500 text-white"
-                        : "border border-white/20 bg-white/10 text-gray-300 hover:bg-white/20"
-                    }`}
-                  >
-                    Exclusions
-                  </button>
-
-                  <button
-                    onClick={() => setActiveSection("gallery")}
-                    className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
-                      activeSection === "gallery"
-                        ? "bg-purple-500 text-white"
-                        : "border border-white/20 bg-white/10 text-gray-300 hover:bg-white/20"
-                    }`}
-                  >
-                    Gallery
-                  </button>
-                </div>
-
-                <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md">
-                  {activeSection === "itinerary" && (
-                    <div>
-                      <h2 className="mb-4 text-2xl font-bold text-orange-400">
-                        Itinerary
-                      </h2>
-                      <ul className="space-y-3 text-gray-300">
-                        <li className="rounded-xl border border-white/10 bg-black/20 p-4">
-                          Day 1 - Arrival and check-in
-                        </li>
-                        <li className="rounded-xl border border-white/10 bg-black/20 p-4">
-                          Day 2 - Sightseeing and local exploration
-                        </li>
-                        <li className="rounded-xl border border-white/10 bg-black/20 p-4">
-                          Day 3 - Adventure activities and free time
-                        </li>
-                        <li className="rounded-xl border border-white/10 bg-black/20 p-4">
-                          Day 4 - Checkout and departure
-                        </li>
-                      </ul>
-                    </div>
+                <button
+                  onClick={toggleWishlist}
+                  className="absolute right-6 top-6 flex h-12 w-12 items-center justify-center rounded-full bg-black/50 text-xl text-white backdrop-blur-md transition hover:scale-110"
+                >
+                  {wishlist.some((item) => item.id === trip.id) ? (
+                    <FaHeart className="text-red-500" />
+                  ) : (
+                    <FaRegHeart />
                   )}
-
-                  {activeSection === "inclusions" && (
-                    <div>
-                      <h2 className="mb-4 text-2xl font-bold text-green-400">
-                        Inclusions
-                      </h2>
-                      <ul className="space-y-3 text-gray-300">
-                        <li className="rounded-xl border border-green-500/20 bg-green-500/10 p-4">
-                          Stay accommodation
-                        </li>
-                        <li className="rounded-xl border border-green-500/20 bg-green-500/10 p-4">
-                          Meals
-                        </li>
-                        <li className="rounded-xl border border-green-500/20 bg-green-500/10 p-4">
-                          Transport
-                        </li>
-                        <li className="rounded-xl border border-green-500/20 bg-green-500/10 p-4">
-                          Trip coordination and support
-                        </li>
-                      </ul>
-                    </div>
-                  )}
-
-                  {activeSection === "exclusions" && (
-                    <div>
-                      <h2 className="mb-4 text-2xl font-bold text-red-400">
-                        Exclusions
-                      </h2>
-                      <ul className="space-y-3 text-gray-300">
-                        <li className="rounded-xl border border-red-500/20 bg-red-500/10 p-4">
-                          Personal expenses
-                        </li>
-                        <li className="rounded-xl border border-red-500/20 bg-red-500/10 p-4">
-                          Extra activities
-                        </li>
-                        <li className="rounded-xl border border-red-500/20 bg-red-500/10 p-4">
-                          Shopping and personal purchases
-                        </li>
-                        <li className="rounded-xl border border-red-500/20 bg-red-500/10 p-4">
-                          Anything not mentioned in inclusions
-                        </li>
-                      </ul>
-                    </div>
-                  )}
-
-                  {activeSection === "gallery" && (
-                    <div>
-                      <h2 className="mb-4 text-2xl font-bold text-purple-400">
-                        Trip Gallery
-                      </h2>
-
-                      {trip.gallery && trip.gallery.length > 0 ? (
-                        <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-                          {trip.gallery.map((img, index) => (
-                            <img
-                              key={index}
-                              src={img}
-                              alt={`${trip.title} ${index + 1}`}
-                              onClick={() => setSelectedImage(img)}
-                              className="h-40 w-full cursor-pointer rounded-xl object-cover transition hover:scale-105"
-                            />
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-gray-400">
-                          No gallery images available for this trip.
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
+                </button>
               </div>
 
-              <div className="md:col-span-1">
-                <div className="sticky top-28 rounded-2xl border border-orange-400/20 bg-white/10 p-6 shadow-xl backdrop-blur-md">
-                  <h2 className="mb-4 text-xl font-bold text-orange-400">
-                    Book This Trip
-                  </h2>
-
-                  <p className="mb-4 text-sm font-semibold text-red-400">
-                    ⚠ Only few slots left!
+              <div className="grid gap-8 p-6 md:grid-cols-3 md:p-8">
+                <div className="md:col-span-2">
+                  <p className="mb-3 text-sm uppercase tracking-[0.3em] text-orange-400">
+                    {trip.location || "Featured destination"}
                   </p>
 
-                  <input
-                    type="date"
-                    min={today}
-                    value={travelDate}
-                    onChange={(e) => setTravelDate(e.target.value)}
-                    className="mb-4 w-full rounded border border-white/20 bg-black/50 p-2"
-                  />
+                  <h1 className="text-4xl font-bold">{trip.title}</h1>
 
-                  <input
-                    type="number"
-                    min="1"
-                    value={people}
-                    onChange={(e) => setPeople(Number(e.target.value))}
-                    className="mb-4 w-full rounded border border-white/20 bg-black/50 p-2"
-                  />
+                  <p className="mt-4 text-2xl font-semibold text-orange-400">
+                    ₹{trip.price}
+                  </p>
 
-                  <div className="mb-4 rounded-lg border border-white/10 bg-black/40 p-3">
-                    <p className="text-sm text-gray-300">Total Price</p>
-                    <p className="text-2xl font-bold text-orange-400">
-                      ₹{trip.price * people}
-                    </p>
+                  <p className="mt-6 leading-8 text-gray-300">
+                    {trip.description ||
+                      "A curated travel experience with beautiful views, smooth planning, and a vibrant explorer community."}
+                  </p>
+
+                  <div className="mt-8 grid gap-4 md:grid-cols-2">
+                    <div className="rounded-2xl border border-orange-400/20 bg-orange-500/10 p-5">
+                      <p className="mb-2 flex items-center gap-2 text-lg font-bold text-orange-300">
+                        <FaCalendarAlt /> Best Time to Visit
+                      </p>
+                      <p className="text-gray-200">{meta.bestTime}</p>
+                    </div>
+
+                    <div className="rounded-2xl border border-cyan-400/20 bg-cyan-500/10 p-5">
+                      <p className="mb-2 flex items-center gap-2 text-lg font-bold text-cyan-300">
+                        <FaCloudSun /> Weather
+                      </p>
+                      <p className="text-gray-200">{meta.weather}</p>
+                    </div>
                   </div>
 
-                  <button
-                    onClick={() => {
-                      const message = `Hello, I want to book this trip:
-Trip: ${trip.title}
-Date: ${travelDate || "Not selected"}
-People: ${people}
-Total Price: ₹${trip.price * people}`;
+                  <div className="mt-10 flex flex-wrap gap-3">
+                    <button
+                      onClick={() => setActiveSection("itinerary")}
+                      className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
+                        activeSection === "itinerary"
+                          ? "bg-orange-500 text-white"
+                          : "border border-white/20 bg-white/10 text-gray-300 hover:bg-white/20"
+                      }`}
+                    >
+                      Itinerary
+                    </button>
 
-                      const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-                        message
-                      )}`;
-                      window.open(url, "_blank");
-                    }}
-                    className="w-full rounded-xl bg-green-500 px-6 py-3 text-white transition hover:bg-green-600"
-                  >
-                    Book Now
-                  </button>
+                    <button
+                      onClick={() => setActiveSection("inclusions")}
+                      className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
+                        activeSection === "inclusions"
+                          ? "bg-green-500 text-white"
+                          : "border border-white/20 bg-white/10 text-gray-300 hover:bg-white/20"
+                      }`}
+                    >
+                      Inclusions
+                    </button>
+
+                    <button
+                      onClick={() => setActiveSection("exclusions")}
+                      className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
+                        activeSection === "exclusions"
+                          ? "bg-red-500 text-white"
+                          : "border border-white/20 bg-white/10 text-gray-300 hover:bg-white/20"
+                      }`}
+                    >
+                      Exclusions
+                    </button>
+
+                    <button
+                      onClick={() => setActiveSection("gallery")}
+                      className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
+                        activeSection === "gallery"
+                          ? "bg-purple-500 text-white"
+                          : "border border-white/20 bg-white/10 text-gray-300 hover:bg-white/20"
+                      }`}
+                    >
+                      Gallery
+                    </button>
+                  </div>
+
+                  <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md">
+                    {activeSection === "itinerary" && (
+                      <div>
+                        <h2 className="mb-4 text-2xl font-bold text-orange-400">
+                          Itinerary
+                        </h2>
+                        <ul className="space-y-3 text-gray-300">
+                          <li className="rounded-xl border border-white/10 bg-black/20 p-4">
+                            Day 1 - Arrival and check-in
+                          </li>
+                          <li className="rounded-xl border border-white/10 bg-black/20 p-4">
+                            Day 2 - Sightseeing and local exploration
+                          </li>
+                          <li className="rounded-xl border border-white/10 bg-black/20 p-4">
+                            Day 3 - Adventure activities and free time
+                          </li>
+                          <li className="rounded-xl border border-white/10 bg-black/20 p-4">
+                            Day 4 - Checkout and departure
+                          </li>
+                        </ul>
+                      </div>
+                    )}
+
+                    {activeSection === "inclusions" && (
+                      <div>
+                        <h2 className="mb-4 text-2xl font-bold text-green-400">
+                          Inclusions
+                        </h2>
+                        <ul className="space-y-3 text-gray-300">
+                          <li className="rounded-xl border border-green-500/20 bg-green-500/10 p-4">
+                            Stay accommodation
+                          </li>
+                          <li className="rounded-xl border border-green-500/20 bg-green-500/10 p-4">
+                            Meals
+                          </li>
+                          <li className="rounded-xl border border-green-500/20 bg-green-500/10 p-4">
+                            Transport
+                          </li>
+                          <li className="rounded-xl border border-green-500/20 bg-green-500/10 p-4">
+                            Trip coordination and support
+                          </li>
+                        </ul>
+                      </div>
+                    )}
+
+                    {activeSection === "exclusions" && (
+                      <div>
+                        <h2 className="mb-4 text-2xl font-bold text-red-400">
+                          Exclusions
+                        </h2>
+                        <ul className="space-y-3 text-gray-300">
+                          <li className="rounded-xl border border-red-500/20 bg-red-500/10 p-4">
+                            Personal expenses
+                          </li>
+                          <li className="rounded-xl border border-red-500/20 bg-red-500/10 p-4">
+                            Extra activities
+                          </li>
+                          <li className="rounded-xl border border-red-500/20 bg-red-500/10 p-4">
+                            Shopping and personal purchases
+                          </li>
+                          <li className="rounded-xl border border-red-500/20 bg-red-500/10 p-4">
+                            Anything not mentioned in inclusions
+                          </li>
+                        </ul>
+                      </div>
+                    )}
+
+                    {activeSection === "gallery" && (
+                      <div>
+                        <h2 className="mb-4 text-2xl font-bold text-purple-400">
+                          Trip Gallery
+                        </h2>
+
+                        {trip.gallery && trip.gallery.length > 0 ? (
+                          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+                            {trip.gallery.map((img, index) => (
+                              <img
+                                key={index}
+                                src={img}
+                                alt={`${trip.title} ${index + 1}`}
+                                onClick={() => setSelectedImage(img)}
+                                className="h-40 w-full cursor-pointer rounded-xl object-cover transition hover:scale-105"
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-gray-400">
+                            No gallery images available for this trip.
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <FAQSection faqs={faqs} />
+                </div>
+
+                <div className="md:col-span-1">
+                  <div className="sticky top-28 rounded-2xl border border-orange-400/20 bg-white/10 p-6 shadow-xl backdrop-blur-md">
+                    <h2 className="mb-4 text-xl font-bold text-orange-400">
+                      Book This Trip
+                    </h2>
+
+                    <p className="mb-4 text-sm font-semibold text-red-400">
+                      ⚠ {selectedBatchInfo?.slots || 0} slots left in selected batch
+                    </p>
+
+                    <label className="mb-2 block text-sm text-gray-300">Select batch date</label>
+                    <select
+                      value={selectedBatch}
+                      onChange={(e) => {
+                        setSelectedBatch(e.target.value);
+                        setTravelDate(e.target.value);
+                      }}
+                      className="mb-4 w-full rounded border border-white/20 bg-black/50 p-2"
+                    >
+                      {batchDates.map((batch, index) => (
+                        <option key={index} value={batch.date}>
+                          {batch.date} - {batch.slots} slots left
+                        </option>
+                      ))}
+                    </select>
+
+                    <label className="mb-2 block text-sm text-gray-300">Travel date</label>
+                    <input
+                      type="date"
+                      min={today}
+                      value={travelDate}
+                      onChange={(e) => setTravelDate(e.target.value)}
+                      className="mb-4 w-full rounded border border-white/20 bg-black/50 p-2"
+                    />
+
+                    <label className="mb-2 block text-sm text-gray-300">Number of people</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={people}
+                      onChange={(e) => setPeople(Number(e.target.value))}
+                      className="mb-4 w-full rounded border border-white/20 bg-black/50 p-2"
+                    />
+
+                    <label className="mb-2 block text-sm text-gray-300">Pickup city</label>
+                    <input
+                      type="text"
+                      value={pickupCity}
+                      onChange={(e) => setPickupCity(e.target.value)}
+                      placeholder="Enter pickup city"
+                      className="mb-4 w-full rounded border border-white/20 bg-black/50 p-2"
+                    />
+
+                    <label className="mb-2 block text-sm text-gray-300">Room preference</label>
+                    <select
+                      value={roomType}
+                      onChange={(e) => setRoomType(e.target.value)}
+                      className="mb-4 w-full rounded border border-white/20 bg-black/50 p-2"
+                    >
+                      <option>Double Sharing</option>
+                      <option>Triple Sharing</option>
+                      <option>Quad Sharing</option>
+                      <option>Private Room</option>
+                    </select>
+
+                    <label className="mb-2 block text-sm text-gray-300">Special request</label>
+                    <textarea
+                      rows="3"
+                      value={specialRequest}
+                      onChange={(e) => setSpecialRequest(e.target.value)}
+                      placeholder="Any note or preference..."
+                      className="mb-4 w-full rounded border border-white/20 bg-black/50 p-2"
+                    />
+
+                    <div className="mb-4 rounded-lg border border-white/10 bg-black/40 p-3">
+                      <p className="text-sm text-gray-300">Total Price</p>
+                      <p className="text-2xl font-bold text-orange-400">
+                        ₹{trip.price * people}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() =>
+                        openWhatsAppBooking(
+                          trip,
+                          people,
+                          travelDate || "Not selected",
+                          pickupCity || "Not selected",
+                          roomType || "Not selected",
+                          specialRequest || "None"
+                        )
+                      }
+                      className="w-full rounded-xl bg-green-500 px-6 py-3 text-white transition hover:bg-green-600"
+                    >
+                      Book Now
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          </article>
+            </article>
+          </>
         )}
       </section>
 
