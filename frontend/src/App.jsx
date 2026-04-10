@@ -539,9 +539,9 @@ function Home() {
 
   const handleToggleWishlist = (trip) => {
     setWishlist((prev) => {
-      const exists = prev.find((item) => item.id === trip.id);
+      const exists = prev.find((item) => item._id === trip._id);
       if (exists) {
-        return prev.filter((item) => item.id !== trip.id);
+        return prev.filter((item) => item._id !== trip._id);
       }
       return [...prev, trip];
     });
@@ -601,14 +601,14 @@ function Home() {
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 sm:gap-8">
             {filteredTrips.map((trip, index) => (
               <div
-                key={trip.id ?? index}
+                key={trip._id}
                 className="animate-fadeInUp"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 <TripCard
                   trip={trip}
-                  onClick={() => navigate(`/trip/${trip.id ?? index}`)}
-                  isWishlisted={wishlist.some((item) => item.id === trip.id)}
+                  onClick={() => navigate(`/trip/${trip._id}`)}
+                  isWishlisted={wishlist.some((item) => item._id === trip._id)}
                   onToggleWishlist={handleToggleWishlist}
                 />
               </div>
@@ -689,7 +689,7 @@ function TripDetail() {
       .then((res) => {
         const trips = res.data;
         const selectedTrip =
-          trips.find((item) => String(item.id) === String(id)) || trips[Number(id)];
+          trips.find((item) => String(item._id) === String(id));
 
         if (!selectedTrip) {
           setError("Trip not found.");
@@ -721,8 +721,8 @@ function TripDetail() {
     if (!trip) return;
 
     setWishlist((prev) => {
-      const exists = prev.find((item) => item.id === trip.id);
-      if (exists) return prev.filter((item) => item.id !== trip.id);
+      const exists = prev.find((item) => item._id === trip._id);
+      if (exists) return prev.filter((item) => item._id !== trip._id);
       return [...prev, trip];
     });
   };
@@ -762,7 +762,7 @@ function TripDetail() {
                   onClick={toggleWishlist}
                   className="absolute right-6 top-6 flex h-12 w-12 items-center justify-center rounded-full bg-black/50 text-xl text-white backdrop-blur-md transition hover:scale-110"
                 >
-                  {wishlist.some((item) => item.id === trip.id) ? (
+                  {wishlist.some((item) => item._id === trip._id) ? (
                     <FaHeart className="text-red-500" />
                   ) : (
                     <FaRegHeart />
