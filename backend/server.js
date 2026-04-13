@@ -21,6 +21,7 @@ app.use(cors({
 }));
 
 app.use(express.json());
+app.use(express.static("public"));
 
 // ================= ROOT =================
 app.get("/", (req, res) => {
@@ -45,22 +46,70 @@ app.get("/trips", async (req, res) => {
 // ✅ ADD trip
 app.post("/trips", async (req, res) => {
   try {
-    const trip = new Trip(req.body);
-    await trip.save();
+    const {
+      title,
+      location,
+      price,
+      duration,
+      image,
+      description,
+      rating,
+      category,
+      trending,
+      packages
+    } = req.body;
+
+    const newTrip = new Trip({
+      title,
+      location,
+      price,
+      duration,
+      image,
+      description,
+      rating,
+      category,
+      trending,
+      packages   // 🔥 THIS IS IMPORTANT
+    });
+
+    await newTrip.save();
 
     res.status(201).json({
       success: true,
-      message: "Trip added successfully ✅",
-      trip
+      message: "Trip added successfully",
+      trip: newTrip
     });
+
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Error adding trip",
-      error: error.message
+      message: error.message
     });
   }
 });
+
+app.put("/trips/:id", async (req, res) => {
+  try {
+    const updatedTrip = await Trip.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
+
+    res.json({
+      success: true,
+      message: "Trip updated successfully",
+      trip: updatedTrip
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
 
 // ================= 404 =================
 app.use((req, res) => {

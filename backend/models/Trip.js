@@ -9,7 +9,16 @@ const tripSchema = new mongoose.Schema({
   description: String,
   rating: Number,
   category: String,
-  trending: Boolean
+  trending: Boolean,
+
+  packages: [
+    {
+      name: String,
+      price: Number,
+      duration: String,
+      pdf: String
+    }
+  ]
 });
 
 module.exports = mongoose.model("Trip", tripSchema);

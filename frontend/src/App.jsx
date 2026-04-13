@@ -480,6 +480,37 @@ function TripCard({ trip, onClick, isWishlisted, onToggleWishlist }) {
 
 function Home() {
   const [trips, setTrips] = useState([]);
+  // POPUP STATE
+  const [showPopup, setShowPopup] = useState(() => {
+  const lastShown = localStorage.getItem("popupTime");
+  const now = new Date().getTime();
+
+  if (!lastShown || now - lastShown > 24 * 60 * 60 * 1000) {
+    return true;
+  }
+  return false;
+});
+  // FORM STATE
+  const [destination, setDestination] = useState("");
+  const [budget, setBudget] = useState("");
+  const [date, setDate] = useState("");
+  const handleClosePopup = () => {
+  setShowPopup(false);
+  localStorage.setItem("popupTime", new Date().getTime());
+};
+  const handlePlanTrip = () => {
+  const message = `Hello, I want to plan a trip:
+
+Destination: ${destination || "Not specified"}
+Budget: ${budget || "Not specified"}
+Travel Date: ${date || "Not specified"}`;
+
+  window.open(
+    `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`
+  );
+
+  handleClosePopup();
+};
   const [reviews] = useState(fallbackReviews);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -619,6 +650,62 @@ function Home() {
 
       <WhyUs />
       <Reviews reviews={reviews} />
+      {showPopup && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+
+    <div className="w-[90%] max-w-md rounded-2xl border border-white/10 bg-white/10 p-6 text-white backdrop-blur-xl">
+
+      <h2 className="text-2xl font-bold text-orange-400 text-center">
+        Plan Your Trip ✈️
+      </h2>
+
+      {/* DESTINATION */}
+      <input
+        type="text"
+        placeholder="Where do you want to go?"
+        value={destination}
+        onChange={(e) => setDestination(e.target.value)}
+        className="w-full mt-4 p-3 rounded bg-black/40 border border-white/10"
+      />
+
+      {/* BUDGET */}
+      <input
+        type="text"
+        placeholder="Your budget (₹)"
+        value={budget}
+        onChange={(e) => setBudget(e.target.value)}
+        className="w-full mt-3 p-3 rounded bg-black/40 border border-white/10"
+      />
+
+      {/* DATE */}
+      <input
+        type="date"
+        value={date}
+        onChange={(e) => setDate(e.target.value)}
+        className="w-full mt-3 p-3 rounded bg-black/40 border border-white/10"
+      />
+
+      {/* BUTTONS */}
+      <div className="mt-5 flex gap-3">
+
+        <button
+          onClick={handlePlanTrip}
+          className="flex-1 bg-green-500 py-2 rounded-xl hover:bg-green-600"
+        >
+          Plan Now
+        </button>
+
+        <button
+          onClick={handleClosePopup}
+          className="flex-1 border border-white/20 py-2 rounded-xl hover:bg-white/10"
+        >
+          Skip
+        </button>
+
+      </div>
+    </div>
+  </div>
+)}
       <Footer />
       <FloatingWhatsApp />
     </main>
@@ -668,6 +755,7 @@ function TripDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  const [selectedPackage, setSelectedPackage] = useState(null);
   const [trip, setTrip] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -688,17 +776,17 @@ function TripDetail() {
       .get(`${API}/trips`)
       .then((res) => {
         const trips = res.data;
-        const selectedTrip =
-          trips.find((item) => String(item._id) === String(id));
+        const selectedTrip = trips.find(
+          (item) => item._id === id || item._id === id?.toString()
+);
 
-        if (!selectedTrip) {
-          setError("Trip not found.");
-          return;
-        }
+       setTrip(selectedTrip || trips[0]);
+       if ((selectedTrip || trips[0])?.packages?.length > 0) {
+         setSelectedPackage((selectedTrip || trips[0]).packages[0]);
+} 
 
-        setTrip(selectedTrip);
-
-        const batches = getBatchDates(selectedTrip);
+        const finalTrip = selectedTrip || trips[0];
+        const batches = getBatchDates(finalTrip);
         if (batches.length > 0) {
           setSelectedBatch(batches[0].date);
           setTravelDate(batches[0].date);
@@ -726,8 +814,9 @@ function TripDetail() {
       return [...prev, trip];
     });
   };
+  console.log("PACKAGES:", trip?.packages);
 
-  return (
+return ( 
     <main className="relative min-h-screen bg-black text-white">
       <LiveBackground />
       <Navbar wishlistCount={wishlist.length} />
@@ -748,8 +837,8 @@ function TripDetail() {
           </div>
         )}
 
-        {!loading && !error && trip && (
-          <>
+        {trip && (
+          <div>
             <article className="overflow-hidden rounded-3xl border border-white/10 bg-white/5 backdrop-blur-md">
               <div className="relative">
                 <img
@@ -777,9 +866,57 @@ function TripDetail() {
                   </p>
 
                   <h1 className="text-4xl font-bold">{trip.title}</h1>
+                  <div className="mt-6">
+  <h2 className="text-xl font-semibold text-orange-300 mb-4">
+    Available Packages
+  </h2>
+
+  <div className="grid gap-4 sm:grid-cols-2">
+    {trip?.packages?.length > 0 &&
+      trip.packages.map((pkg, index) => {
+        return (
+          <div
+            key={index}
+            className={`rounded-2xl border p-5 transition duration-300 ${
+              selectedPackage?.name === pkg.name
+                ? "border-green-500 bg-green-500/10 scale-105"
+                : "border-orange-400/20 bg-gradient-to-br from-black/40 to-orange-500/10"
+            }`}
+          >
+            <h3 className="text-lg font-bold text-white">{pkg.name}</h3>
+
+            <p className="text-2xl font-semibold text-orange-400 mt-2">
+              ₹{pkg.price}
+            </p>
+
+            <p className="text-gray-400 mt-1">
+              {pkg.duration || "Duration not specified"}
+            </p>
+
+            <button
+              onClick={() => setSelectedPackage(pkg)}
+              className="mt-4 w-full rounded-lg bg-green-500 py-2 text-white"
+            >
+              {selectedPackage?.name === pkg.name ? "Selected ✅" : "Select Package"}
+            </button>
+
+            <a
+              href={`http://localhost:5000/${pkg.pdf}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 block w-full rounded-lg bg-blue-500 py-2 text-center text-white"
+            >
+              View Itinerary
+            </a>
+          </div>
+        );
+      })}
+  </div> {/* ✅ CLOSE GRID */}
+
+</div> {/* ✅ CLOSE mt-6 (THIS WAS MISSING) */}
 
                   <p className="mt-4 text-2xl font-semibold text-orange-400">
-                    ₹{trip.price}
+                    ₹{selectedPackage?.price || trip.price}
                   </p>
 
                   <p className="mt-6 leading-8 text-gray-300">
@@ -1023,7 +1160,7 @@ function TripDetail() {
                     <div className="mb-4 rounded-lg border border-white/10 bg-black/40 p-3">
                       <p className="text-sm text-gray-300">Total Price</p>
                       <p className="text-2xl font-bold text-orange-400">
-                        ₹{trip.price * people}
+                        ₹{(selectedPackage?.price || trip.price) * people}
                       </p>
                     </div>
 
@@ -1043,12 +1180,12 @@ function TripDetail() {
                       Book Now
                     </button>
                   </div>
-                </div>
-              </div>
-            </article>
-          </>
-        )}
-      </section>
+</div>
+</div>
+</article>
+</div>
+)}
+</section>
 
       {selectedImage && (
         <div
