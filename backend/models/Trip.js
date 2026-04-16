@@ -7,6 +7,30 @@ const tripSchema = new mongoose.Schema({
   duration: String,
   image: String,
   description: String,
+  about: String,
+  bestFor: [String],
+  highlights: [String],
+  itinerary: [
+    {
+      title: String,
+      description: String
+    }
+  ],
+  inclusions: [String],
+  exclusions: [String],
+  gallery: [String],
+  faqs: [
+    {
+      question: String,
+      answer: String
+    }
+  ],
+  batchDates: [
+    {
+      date: String,
+      slots: Number
+    }
+  ],
   rating: Number,
   category: String,
   trending: Boolean,

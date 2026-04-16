@@ -1,20 +1,46 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --bg-base: #06070b;
+  --bg-elevated: rgba(9, 12, 19, 0.72);
+  --bg-soft: rgba(255, 255, 255, 0.06);
+  --stroke-soft: rgba(255, 255, 255, 0.1);
+  --stroke-strong: rgba(251, 146, 60, 0.28);
+  --text-main: #f8fafc;
+  --text-muted: #cbd5e1;
+  --text-soft: #94a3b8;
+  --brand: #fb923c;
+  --brand-strong: #f97316;
+  --brand-glow: rgba(249, 115, 22, 0.24);
+}
+
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
-  background: black;
+  font-family: "Manrope", "Segoe UI", sans-serif;
+  color: var(--text-main);
+  background:
+    radial-gradient(circle at top left, rgba(251, 146, 60, 0.12), transparent 30%),
+    radial-gradient(circle at top right, rgba(56, 189, 248, 0.12), transparent 26%),
+    linear-gradient(180deg, #05060a 0%, #080b12 42%, #05070d 100%);
   overflow-x: hidden;
 }
 
 html {
   scroll-behavior: smooth;
+  background: var(--bg-base);
 }
 
 * {
   box-sizing: border-box;
+}
+
+::selection {
+  background: rgba(251, 146, 60, 0.28);
+  color: white;
 }
 
 img,
@@ -123,9 +149,15 @@ video {
 }
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03)),
+    var(--bg-elevated);
+  border: 1px solid var(--stroke-soft);
+  box-shadow:
+    0 24px 70px rgba(0, 0, 0, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 }
 
 .touch-card {
@@ -142,11 +174,53 @@ video {
 }
 
 .hero-title {
+  font-family: "Sora", "Manrope", sans-serif;
   text-wrap: balance;
 }
 
 .hero-subtitle {
   text-wrap: balance;
+}
+
+.section-kicker {
+  color: #fdba74;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+}
+
+.section-title {
+  font-family: "Sora", "Manrope", sans-serif;
+  text-wrap: balance;
+}
+
+.premium-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+
+.premium-scroll::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.premium-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(251, 146, 60, 0.35);
+}
+
+.noise-overlay {
+  position: relative;
+}
+
+.noise-overlay::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.18;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: radial-gradient(circle at center, black 50%, transparent 100%);
 }
 
 @media (max-width: 640px) {
@@ -178,20 +252,22 @@ video {
   }
 }
 .theme-card {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03)),
+    var(--bg-elevated);
+  border: 1px solid var(--stroke-soft);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 }
 
 .theme-heading {
-  color: #fb923c;
+  color: var(--brand);
 }
 
 .theme-text {
-  color: #ffffff;
+  color: var(--text-main);
 }
 
 .theme-muted {
-  color: #d1d5db;
+  color: var(--text-muted);
 }
