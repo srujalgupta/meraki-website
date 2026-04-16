@@ -1,5 +1,4 @@
 ﻿import React, { useEffect, useMemo, useState } from "react";
-import axios from "axios";
 import { useRef } from "react";
 import { Routes, Route, useNavigate, useParams, Link, useLocation } from "react-router-dom";
 import {
@@ -20,8 +19,17 @@ import {
   FaChevronDown,
   FaChevronUp,
   FaHome,
+  FaRegCopyright,
+  FaCcPaypal,
+  FaCcVisa,
+  FaCcMastercard,
+  FaGooglePay,
+  FaBars,
+  FaTimes,
+  FaLinkedinIn,
+  FaYoutube,
 } from "react-icons/fa";
-import API from "./api";
+import API, { loadTripById, loadTrips } from "./api";
 
 const WHATSAPP_NUMBER = "919662351358";
 
@@ -116,6 +124,122 @@ const defaultFAQs = [
   },
 ];
 
+const privacyPolicySections = [
+  {
+    title: "Information We Collect",
+    points: [
+      "We collect the details you share with us when you enquire about or book a trip, including your name, phone number, travel date, pickup city, room preference, and any special notes you submit.",
+      "We may also collect limited technical data such as browser type, device information, and page interactions to keep the website working properly and improve the experience.",
+      "Payments, final confirmations, and trip coordination may also require identity or travel details that are necessary to complete your booking.",
+    ],
+  },
+  {
+    title: "How We Use Your Information",
+    points: [
+      "To respond to enquiries, confirm trip availability, and coordinate bookings through WhatsApp, phone, or email.",
+      "To improve our routes, booking flow, customer support, and website usability.",
+      "To share important trip updates, payment follow-ups, itinerary support, and departure communication related to your booking.",
+    ],
+  },
+  {
+    title: "Sharing Of Information",
+    points: [
+      "We do not sell your personal information to third parties.",
+      "We may share limited traveler information with trusted travel partners, accommodation providers, transport teams, or local coordinators only when it is required to deliver the trip.",
+      "We may also disclose information if required by law, regulation, or a valid government request.",
+    ],
+  },
+  {
+    title: "Data Security",
+    points: [
+      "We take reasonable steps to protect the information you share with us, but no online system can guarantee absolute security.",
+      "You should avoid sharing unnecessary sensitive personal information through public or unsecured channels.",
+    ],
+  },
+  {
+    title: "Your Choices",
+    points: [
+      "You can contact us to update or correct the personal information you have shared with us.",
+      "You can also request that we stop sending non-essential updates, though important trip communication may still be necessary for active bookings.",
+    ],
+  },
+];
+
+const termsAndConditionsSections = [
+  {
+    title: "Bookings And Confirmation",
+    points: [
+      "A booking is treated as confirmed only after the required payment is received and our team shares a confirmation message.",
+      "Trip pricing, batch availability, route flow, inclusions, and occupancy are subject to the package selected at the time of confirmation.",
+      "Travelers are responsible for sharing accurate booking details, including names, contact information, and any important travel notes.",
+    ],
+  },
+  {
+    title: "Traveler Responsibilities",
+    points: [
+      "Travelers must carry valid identification and any documents needed for permits, check-ins, or transport during the trip.",
+      "It is your responsibility to ensure you are medically fit for the destination, terrain, altitude, and climate of the selected route.",
+      "You agree to follow trip instructions shared by the trip captain, coordinators, drivers, and local partners during the journey.",
+    ],
+  },
+  {
+    title: "Route And Operational Changes",
+    points: [
+      "Itineraries may change due to weather, roadblocks, government restrictions, safety conditions, operational requirements, or circumstances beyond our control.",
+      "We reserve the right to adjust stays, transport, sightseeing flow, or trip timing when necessary for safety or continuity.",
+      "Any extra costs caused by force majeure events or traveler-caused disruptions may be payable separately unless clearly included otherwise.",
+    ],
+  },
+  {
+    title: "Payments And Pricing",
+    points: [
+      "Published prices may change before booking confirmation, especially when batch availability, occupancy, transport, or seasonal costs shift.",
+      "Quoted prices normally cover only the items mentioned in the package inclusions.",
+      "Taxes, personal expenses, optional activities, and items not listed in inclusions remain the traveler's responsibility unless stated otherwise.",
+    ],
+  },
+  {
+    title: "Conduct And Safety",
+    points: [
+      "We reserve the right to remove a traveler from a departure without refund if their behavior puts the group, local partners, or trip operations at risk.",
+      "Adventure and mountain travel involve real risks, and travelers accept that weather, terrain, health, and road conditions can affect the trip.",
+      "By booking with us, you acknowledge these risks and agree to participate responsibly.",
+    ],
+  },
+];
+
+const refundPolicySections = [
+  {
+    title: "Cancellation By Traveler",
+    points: [
+      "Cancellation requests are considered only after they are acknowledged by our team through an official communication channel.",
+      "Any refund, credit note, or rescheduling support depends on the package terms, timing of cancellation, non-recoverable vendor costs, and operational commitments already made.",
+      "Convenience charges, payment gateway charges, permit charges, and other non-recoverable costs may be deducted where applicable.",
+    ],
+  },
+  {
+    title: "Cancellation Or Changes By Us",
+    points: [
+      "If a trip is cancelled by us due to low participation, operational issues, weather, government restrictions, or force majeure, we may offer a refund, partial refund, travel credit, or transfer to another batch depending on recoverable costs.",
+      "We are not responsible for incidental expenses booked separately by the traveler, such as flights, trains, buses, taxis, hotels, or leave from work.",
+    ],
+  },
+  {
+    title: "No Show And Early Exit",
+    points: [
+      "No-show cases, missed departures, or leaving a trip midway generally do not qualify for a refund.",
+      "Unused services during the trip are usually non-refundable unless specifically approved by our team in writing.",
+    ],
+  },
+  {
+    title: "Refund Timelines",
+    points: [
+      "Approved refunds are processed through the original payment method or another mutually agreed mode within a reasonable processing window.",
+      "Actual credit timelines may vary depending on banks, payment gateways, and partner processing timelines.",
+    ],
+  },
+];
+
 const getTripMeta = (trip) => {
   const combined = `${trip?.title || ""} ${trip?.location || ""}`.toLowerCase();
 
@@ -140,6 +264,12 @@ const getTripFAQs = (trip) => {
 const WISHLIST_STORAGE_KEY = "merakiWishlist";
 
 const getTripId = (trip) => trip?._id || trip?.id || trip?.title || null;
+
+const getTodayInputValue = () => {
+  const now = new Date();
+  const timezoneOffsetMs = now.getTimezoneOffset() * 60 * 1000;
+  return new Date(now.getTime() - timezoneOffsetMs).toISOString().split("T")[0];
+};
 
 const isTripWishlisted = (wishlist, trip) => {
   const tripId = getTripId(trip);
@@ -210,6 +340,12 @@ const tripPdfGuides = {
       "Any upgrades beyond the listed stay and occupancy arrangement",
       "Anything not specifically mentioned in the package itinerary or meal plan",
     ],
+    thingsToPack: [
+      "Thermals, fleece layers, padded jacket, and a windproof outer layer for changing mountain temperatures",
+      "Comfortable trekking or sports shoes with warm socks and an extra backup pair",
+      "Sunglasses, sunscreen, lip balm, moisturizer, gloves, and a beanie for high-altitude exposure",
+      "Reusable water bottle, power bank, personal medicines, and valid government ID",
+    ],
   },
   "spiti-short.pdf": {
     about:
@@ -258,6 +394,12 @@ const tripPdfGuides = {
       "Lunches, snacks, and personal expenses during the route",
       "Any optional local activity not mentioned in the package itinerary",
       "Anything beyond the stay and meals listed in the PDF",
+    ],
+    thingsToPack: [
+      "Warm layered clothing including thermals, fleece, and a jacket for cold mornings and nights",
+      "Sturdy shoes, warm socks, gloves, sunglasses, and a cap or beanie",
+      "Sunscreen, lip balm, moisturizer, personal medicines, and motion-sickness support if needed",
+      "ID proof, power bank, torch, and a compact day bag for transit and sightseeing",
     ],
   },
   "spiti-4x4.pdf": {
@@ -318,6 +460,12 @@ const tripPdfGuides = {
       "Rooming upgrades beyond the listed occupancy plan",
       "Anything not explicitly listed in the package itinerary",
     ],
+    thingsToPack: [
+      "Layered winter wear with thermals, fleece, padded jacket, gloves, and woollen accessories",
+      "Good grip shoes, extra socks, sunglasses, sunscreen, and lip care for dry mountain conditions",
+      "Personal medication kit, reusable bottle, power bank, flashlight, and wet wipes",
+      "Original ID and a small backpack for daily essentials during the overland route",
+    ],
   },
   "spiti-biking.pdf": {
     about:
@@ -377,6 +525,12 @@ const tripPdfGuides = {
       "Travel to the reporting or boarding point before the trip begins",
       "Anything not clearly mentioned in the package itinerary",
     ],
+    thingsToPack: [
+      "Riding jacket, gloves, knee or elbow support if needed, thermals, and warm layers for long mountain stretches",
+      "Sturdy riding or trekking shoes, warm socks, sunglasses, and a face cover or buff",
+      "Sunscreen, lip balm, hydration bottle, power bank, and personal medicines",
+      "Original ID, basic toiletries, and a compact backpack or duffel for route essentials",
+    ],
   },
   "kumbhalgarh x jawai itinerary.pdf": {
     about:
@@ -424,6 +578,12 @@ const tripPdfGuides = {
       "Extra refreshments, snacks, and personal purchases during the trip",
       "Entry fees or optional add-ons not explicitly mentioned in inclusions",
       "Anything not specifically listed in the itinerary package",
+    ],
+    thingsToPack: [
+      "Light comfortable clothing for the day and one warm layer for cooler evenings",
+      "Walking shoes or comfortable sneakers for the fort visit and safari movement",
+      "Sunglasses, sunscreen, cap, reusable water bottle, and a small personal day bag",
+      "Government ID, basic medicines, and a camera or phone backup if you plan to photograph the safari",
     ],
   },
 };
@@ -561,6 +721,13 @@ const buildFallbackExclusions = (trip, packageGuide) => {
   ];
 };
 
+const buildFallbackThingsToPack = (trip, packageGuide) => {
+  const thingsToPack = getArrayItems(trip?.thingsToPack);
+  if (thingsToPack.length) return thingsToPack;
+  if (packageGuide?.thingsToPack?.length) return packageGuide.thingsToPack;
+  return [];
+};
+
 const openWhatsAppBooking = (
   trip,
   people = 1,
@@ -593,7 +760,7 @@ const openWhatsAppBooking = (
 
 
   const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(bookingMessage)}`;
-  window.open(url, "_blank");
+  window.open(url, "_blank", "noopener,noreferrer");
 };
 
 function LiveBackground() {
@@ -652,26 +819,45 @@ function LiveBackground() {
 }
 
 function Navbar({ wishlistCount = 0 }) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const location = useLocation();
+
+  useEffect(() => {
+    setIsMenuOpen(false);
+  }, [location.pathname, location.hash]);
+
   return (
     <header className="fixed top-0 left-0 z-50 w-full border-b border-white/10 bg-black/55 backdrop-blur-xl animate-fadeInSoft">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 text-white sm:px-6">
-        <Link to="/" className="flex min-w-0 items-center gap-3">
-          <img
-            src="/logo.png"
-            alt="logo"
-            className="brand-ring h-10 w-10 rounded-2xl border border-white/15 object-cover shadow-[0_10px_30px_rgba(0,0,0,0.28)] transition duration-500 hover:scale-105 sm:h-11 sm:w-11"
-          />
-          <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-[0.28em] text-orange-300/80">
-              Curated Group Travel
-            </p>
-            <h2 className="truncate font-['Sora'] text-base font-semibold text-white sm:text-lg">
-              The Meraki Tribe
-            </h2>
-          </div>
-        </Link>
+        <div className="flex min-w-0 items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setIsMenuOpen((prev) => !prev)}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/8 text-white transition duration-300 hover:border-orange-300/30 hover:bg-white/12"
+            aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={isMenuOpen}
+          >
+            {isMenuOpen ? <FaTimes className="text-base" /> : <FaBars className="text-base" />}
+          </button>
 
-        <div className="flex flex-wrap items-center gap-3">
+          <Link to="/" className="flex min-w-0 items-center gap-3">
+            <img
+              src="/logo.png"
+              alt="logo"
+              className="brand-ring h-10 w-10 rounded-2xl border border-white/15 object-cover shadow-[0_10px_30px_rgba(0,0,0,0.28)] transition duration-500 hover:scale-105 sm:h-11 sm:w-11"
+            />
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-[0.28em] text-orange-300/80">
+                Curated Group Travel
+              </p>
+              <h2 className="truncate font-['Sora'] text-base font-semibold text-white sm:text-lg">
+                The Meraki Tribe
+              </h2>
+            </div>
+          </Link>
+        </div>
+
+        <div className="hidden flex-wrap items-center gap-3 lg:flex">
           <Link
             to="/"
             className="flex min-h-[44px] items-center gap-2 rounded-full border border-white/10 bg-white/8 px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(0,0,0,0.18)] transition duration-300 hover:scale-105 hover:border-orange-300/30 hover:bg-white/12"
@@ -704,6 +890,26 @@ function Navbar({ wishlistCount = 0 }) {
             Book Now
           </a>
         </div>
+
+        {isMenuOpen && (
+          <div className="glass-card absolute left-4 top-full z-[55] mt-3 w-[min(15rem,calc(100vw-2rem))] rounded-[22px] border border-white/10 bg-black/90 p-3 shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
+            <div className="flex flex-col gap-2">
+              <Link
+                to="/customize-tours"
+                className="flex min-h-[42px] items-center rounded-xl border border-white/10 bg-white/8 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white transition hover:border-orange-300/30 hover:bg-white/12"
+              >
+                Customize Tours
+              </Link>
+
+              <Link
+                to="/contact-us"
+                className="flex min-h-[42px] items-center rounded-xl border border-white/10 bg-white/8 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white transition hover:border-orange-300/30 hover:bg-white/12"
+              >
+                Contact Us
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
     </header>
   );
@@ -1221,7 +1427,9 @@ Budget: ${budget || "Not specified"}
 Travel Date: ${date || "Not specified"}`;
 
   window.open(
-    `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`
+    `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`,
+    "_blank",
+    "noopener,noreferrer"
   );
 
   handleClosePopup();
@@ -1236,14 +1444,25 @@ Travel Date: ${date || "Not specified"}`;
   const navigate = useNavigate();
 
   useEffect(() => {
-    axios
-      .get(`${API}/trips`)
-      .then((res) => setTrips(res.data))
-      .catch((err) => {
-        console.error(err);
-        setError("Failed to load trips.");
-      })
-      .finally(() => setLoading(false));
+    let isMounted = true;
+
+    const fetchTrips = async () => {
+      setLoading(true);
+
+      const { trips: loadedTrips, errorMessage } = await loadTrips();
+
+      if (!isMounted) return;
+
+      setTrips(loadedTrips);
+      setError(errorMessage);
+      setLoading(false);
+    };
+
+    fetchTrips();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const locations = useMemo(() => {
@@ -1364,7 +1583,7 @@ Travel Date: ${date || "Not specified"}`;
       <Navbar wishlistCount={wishlist.length} />
 
       <section id="trips" className="mx-auto max-w-7xl px-6 pb-12 pt-28">
-        <div className="noise-overlay brand-sheen mb-12 rounded-[36px] border border-white/10 bg-black/18 px-6 py-8 shadow-[0_30px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl animate-fadeInUp sm:mb-16 sm:px-8 sm:py-10">
+        <div className="noise-overlay brand-sheen mb-12 rounded-[36px] border border-white/10 bg-[linear-gradient(180deg,rgba(8,11,18,0.5),rgba(8,11,18,0.24))] px-6 py-8 shadow-[0_30px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl animate-fadeInUp sm:mb-16 sm:px-8 sm:py-10">
           <p className="section-kicker mb-4 text-[11px] sm:text-sm">
             Himalayan Group Departures
           </p>
@@ -1403,7 +1622,7 @@ Travel Date: ${date || "Not specified"}`;
 
         <FeaturedSpotlight
           trip={featuredTrip}
-          onViewTrip={() => featuredTrip && navigate(`/trip/${featuredTrip._id}`)}
+          onViewTrip={() => featuredTrip && navigate(`/trip/${getTripId(featuredTrip)}`)}
         />
 
         <div className="mb-8 sm:mb-10">
@@ -1439,7 +1658,7 @@ Travel Date: ${date || "Not specified"}`;
           </div>
         )}
 
-        {!loading && !error && filteredTrips.length === 0 && (
+        {!loading && filteredTrips.length === 0 && (
           <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center backdrop-blur-md">
             <h3 className="text-2xl font-bold text-white">No trips found</h3>
             <p className="mt-3 text-gray-300">
@@ -1448,7 +1667,7 @@ Travel Date: ${date || "Not specified"}`;
           </div>
         )}
 
-        {!loading && !error && filteredTrips.length > 0 && (
+        {!loading && filteredTrips.length > 0 && (
           <div>
             <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
               <div>
@@ -1467,13 +1686,13 @@ Travel Date: ${date || "Not specified"}`;
             <div id="trips-list" className="grid gap-6 scroll-mt-28 sm:grid-cols-2 lg:grid-cols-3 sm:gap-8">
               {filteredTrips.map((trip, index) => (
                 <div
-                  key={trip._id}
+                  key={getTripId(trip) || index}
                   className="animate-fadeInUp"
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
                   <TripCard
                     trip={trip}
-                    onClick={() => navigate(`/trip/${trip._id}`)}
+                    onClick={() => navigate(`/trip/${getTripId(trip)}`)}
                     isWishlisted={isTripWishlisted(wishlist, trip)}
                     onToggleWishlist={onToggleWishlist}
                   />
@@ -1550,7 +1769,7 @@ Travel Date: ${date || "Not specified"}`;
     </div>
   </div>
 )}
-      <Footer />
+      <Footer featuredTrip={featuredTrip} />
       <FloatingWhatsApp />
     </main>
   );
@@ -1666,6 +1885,373 @@ function FAQSection({
   );
 }
 
+function StaticPageLayout({ title, intro, sections }) {
+  return (
+    <main className="relative min-h-screen bg-black text-white">
+      <LiveBackground />
+      <Navbar />
+
+      <section className="mx-auto max-w-5xl px-6 pb-16 pt-28">
+        <div className="glass-card rounded-[34px] p-6 sm:p-8 md:p-10">
+          <p className="section-kicker mb-3 text-[11px]">Legal</p>
+          <h1 className="font-['Sora'] text-4xl font-semibold text-white sm:text-5xl">
+            {title}
+          </h1>
+          <p className="mt-5 max-w-3xl text-base leading-8 text-slate-300">{intro}</p>
+
+          <div className="mt-10 space-y-6">
+            {sections.map((section) => (
+              <section
+                key={section.title}
+                className="rounded-[28px] border border-white/10 bg-black/20 p-6"
+              >
+                <h2 className="font-['Sora'] text-2xl font-semibold text-orange-200">
+                  {section.title}
+                </h2>
+                <ul className="mt-4 space-y-3 text-base leading-8 text-slate-300">
+                  {section.points.map((point, index) => (
+                    <li key={`${section.title}-${index}`}>{point}</li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <Footer />
+      <FloatingWhatsApp />
+    </main>
+  );
+}
+
+function PrivacyPolicyPage() {
+  return (
+    <StaticPageLayout
+      title="Privacy Policy"
+      intro="This Privacy Policy explains how The Meraki Tribe collects, uses, and protects information shared through our website, enquiry flow, and trip-booking communication."
+      sections={privacyPolicySections}
+    />
+  );
+}
+
+function TermsPage() {
+  return (
+    <StaticPageLayout
+      title="Terms & Conditions"
+      intro="These terms govern how travelers use this website and how bookings, trip participation, and coordination are handled by The Meraki Tribe."
+      sections={termsAndConditionsSections}
+    />
+  );
+}
+
+function RefundPolicyPage() {
+  return (
+    <StaticPageLayout
+      title="Refund & Cancellation"
+      intro="This page outlines the general cancellation, refund, and rescheduling approach for bookings made with The Meraki Tribe."
+      sections={refundPolicySections}
+    />
+  );
+}
+
+function CustomizeToursPage() {
+  const [destination, setDestination] = useState("");
+  const [travelers, setTravelers] = useState("2");
+  const [travelMonth, setTravelMonth] = useState("");
+  const [budget, setBudget] = useState("");
+  const [notes, setNotes] = useState("");
+
+  const handleSubmit = () => {
+    const customMessage = [
+      "Hello, I want to customize a tour with The Meraki Tribe.",
+      `Destination: ${destination || "Not specified"}`,
+      `Travellers: ${travelers || "Not specified"}`,
+      `Month of Travel: ${travelMonth || "Not specified"}`,
+      `Budget: ${budget || "Not specified"}`,
+      `Special Notes: ${notes || "None"}`,
+    ].join("\n");
+
+    window.open(
+      `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(customMessage)}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
+  };
+
+  return (
+    <main className="relative min-h-screen bg-black text-white">
+      <LiveBackground />
+      <Navbar />
+
+      <section className="mx-auto max-w-5xl px-6 pb-16 pt-28">
+        <div className="glass-card rounded-[34px] p-6 sm:p-8 md:p-10">
+          <p className="section-kicker mb-3 text-[11px]">Customize Tours</p>
+          <h1 className="font-['Sora'] text-4xl font-semibold text-white sm:text-5xl">
+            Plan A Custom Tour
+          </h1>
+          <p className="mt-5 max-w-3xl text-base leading-8 text-slate-300">
+            Share your route idea, travel month, group size, and budget. We will continue the conversation on WhatsApp with a more tailored plan.
+          </p>
+
+          <div className="mt-10 grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
+            <div className="space-y-4">
+              <input
+                type="text"
+                value={destination}
+                onChange={(e) => setDestination(e.target.value)}
+                placeholder="Destination you want to explore"
+                className="w-full rounded-2xl border border-white/10 bg-black/30 p-4 text-white outline-none placeholder:text-slate-500 focus:border-orange-300"
+              />
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <input
+                  type="number"
+                  min="1"
+                  value={travelers}
+                  onChange={(e) => setTravelers(String(Math.max(1, Number(e.target.value) || 1)))}
+                  placeholder="Travellers"
+                  className="w-full rounded-2xl border border-white/10 bg-black/30 p-4 text-white outline-none placeholder:text-slate-500 focus:border-orange-300"
+                />
+
+                <input
+                  type="month"
+                  value={travelMonth}
+                  onChange={(e) => setTravelMonth(e.target.value)}
+                  className="w-full rounded-2xl border border-white/10 bg-black/30 p-4 text-white outline-none focus:border-orange-300"
+                />
+              </div>
+
+              <input
+                type="text"
+                value={budget}
+                onChange={(e) => setBudget(e.target.value)}
+                placeholder="Budget range"
+                className="w-full rounded-2xl border border-white/10 bg-black/30 p-4 text-white outline-none placeholder:text-slate-500 focus:border-orange-300"
+              />
+
+              <textarea
+                rows="6"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Tell us your route idea, stay style, pickup city, pace, or any special request"
+                className="w-full rounded-2xl border border-white/10 bg-black/30 p-4 text-white outline-none placeholder:text-slate-500 focus:border-orange-300"
+              />
+
+              <button
+                type="button"
+                onClick={handleSubmit}
+                className="w-full rounded-2xl bg-gradient-to-r from-green-500 to-emerald-500 px-6 py-4 font-semibold text-white shadow-[0_14px_34px_rgba(34,197,94,0.28)] transition hover:from-green-400 hover:to-emerald-400"
+              >
+                Continue To WhatsApp
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="rounded-[28px] border border-white/10 bg-white/6 p-6">
+                <p className="text-[11px] uppercase tracking-[0.22em] text-orange-300/80">
+                  Best For
+                </p>
+                <h2 className="mt-3 font-['Sora'] text-2xl font-semibold text-white">
+                  Tailored trips without a rigid template
+                </h2>
+                <p className="mt-4 text-base leading-8 text-slate-300">
+                  This is useful when you want a private route, a different travel pace, a special occasion trip, or a departure that does not match the currently listed packages.
+                </p>
+              </div>
+
+              <div className="rounded-[28px] border border-white/10 bg-white/6 p-6">
+                <p className="text-[11px] uppercase tracking-[0.22em] text-orange-300/80">
+                  What Happens Next
+                </p>
+                <ul className="mt-4 space-y-3 text-base leading-8 text-slate-300">
+                  <li>We review your destination, timing, and budget.</li>
+                  <li>We continue the discussion on WhatsApp for faster coordination.</li>
+                  <li>We suggest the most suitable route, stay style, and trip structure.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <Footer />
+      <FloatingWhatsApp />
+    </main>
+  );
+}
+
+function ContactPage() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [message, setMessage] = useState("");
+
+  const handleSubmit = () => {
+    const contactMessage = [
+      "Hello, I want to get in touch with The Meraki Tribe.",
+      `Name: ${name || "Not specified"}`,
+      `Email: ${email || "Not specified"}`,
+      `Phone: ${phone || "Not specified"}`,
+      `Message: ${message || "Not specified"}`,
+    ].join("\n");
+
+    window.open(
+      `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(contactMessage)}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
+  };
+
+  return (
+    <main className="relative min-h-screen bg-[#050505] px-4 pb-10 pt-28 text-slate-900 sm:px-6">
+      <LiveBackground />
+      <Navbar />
+
+      <section className="mx-auto max-w-7xl">
+        <div className="overflow-hidden rounded-[34px] border border-orange-300/40 bg-[linear-gradient(135deg,#fff7ef_0%,#ffd6a8_48%,#f97316_100%)] shadow-[0_32px_100px_rgba(0,0,0,0.48)]">
+          <div className="grid lg:grid-cols-[1.04fr_0.96fr]">
+            <div className="relative bg-[linear-gradient(180deg,#fffdfb_0%,#fff6ec_100%)] px-8 py-10 sm:px-12 sm:py-12">
+              <div className="absolute -bottom-10 right-10 h-32 w-32 rounded-full bg-orange-200/80" />
+              <div className="absolute left-0 top-0 h-full w-px bg-orange-200/0 lg:absolute lg:right-0 lg:left-auto lg:w-[1px] lg:bg-orange-300/30" />
+              <h1 className="font-['Sora'] text-4xl font-semibold tracking-tight text-black sm:text-5xl">
+                Let&apos;s get in touch
+              </h1>
+              <p className="mt-8 max-w-xl text-lg leading-10 text-[#2a2a2a]">
+                Thank you for contacting The Meraki Tribe. Whether it&apos;s a vacation,
+                business trip, or adventure, we&apos;re here to help. Please provide your
+                details, and our travel experts will get back to you shortly.
+              </p>
+
+              <div className="mt-14 space-y-8 text-[#222]">
+                <div className="flex items-start gap-4">
+                  <span className="mt-1 flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-amber-400 text-xl text-white shadow-[0_10px_24px_rgba(249,115,22,0.28)]">
+                    <FaMapMarkerAlt />
+                  </span>
+                  <p className="text-base leading-8">
+                    The Meraki Tribe, Raj Nagar Extension, Ghaziabad, Uttar Pradesh 201301
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-amber-400 text-xl text-white shadow-[0_10px_24px_rgba(249,115,22,0.28)]">
+                    <FaEnvelope />
+                  </span>
+                  <a
+                    href="mailto:info.merakitribe@gmail.com"
+                    className="text-base transition hover:text-black"
+                  >
+                    info.merakitribe@gmail.com
+                  </a>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-amber-400 text-xl text-white shadow-[0_10px_24px_rgba(249,115,22,0.28)]">
+                    <FaPhoneAlt />
+                  </span>
+                  <a
+                    href="tel:+919662351358"
+                    className="text-base transition hover:text-black"
+                  >
+                    +91 96623 51358
+                  </a>
+                </div>
+              </div>
+
+              <div className="mt-16">
+                <p className="text-lg font-medium text-black">Connect with us :</p>
+                <div className="mt-5 flex items-center gap-3">
+                  <a
+                    href="https://www.youtube.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-500 text-xl text-white transition hover:scale-105"
+                    aria-label="YouTube"
+                  >
+                    <FaYoutube />
+                  </a>
+                  <a
+                    href="https://www.instagram.com/the.merakitribe"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 via-rose-500 to-orange-400 text-xl text-white transition hover:scale-105"
+                    aria-label="Instagram"
+                  >
+                    <FaInstagram />
+                  </a>
+                  <a
+                    href="https://www.linkedin.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-700 text-xl text-white transition hover:scale-105"
+                    aria-label="LinkedIn"
+                  >
+                    <FaLinkedinIn />
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative overflow-hidden bg-[linear-gradient(150deg,#ffb15b_0%,#fb923c_45%,#ea580c_100%)] px-8 py-10 sm:px-10 sm:py-12">
+              <div className="absolute -right-10 top-8 h-28 w-28 rounded-full bg-black/20 blur-[1px]" />
+              <div className="absolute bottom-[-2.5rem] left-10 h-36 w-36 rounded-full bg-white/10 blur-[1px]" />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.22),transparent_42%)]" />
+
+              <div className="relative rounded-[28px] border border-black/15 bg-white/12 p-6 backdrop-blur-[2px] sm:p-7">
+              <h2 className="font-['Sora'] text-3xl font-semibold text-black">
+                Contact us
+              </h2>
+
+              <div className="mt-6 space-y-4">
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Username"
+                  className="w-full rounded-[14px] border-2 border-black/90 bg-white/18 px-5 py-4 text-base text-black outline-none placeholder:text-black/78"
+                />
+
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Email"
+                  className="w-full rounded-[14px] border-2 border-black/90 bg-white/18 px-5 py-4 text-base text-black outline-none placeholder:text-black/78"
+                />
+
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="Phone"
+                  className="w-full rounded-[14px] border-2 border-black/90 bg-white/18 px-5 py-4 text-base text-black outline-none placeholder:text-black/78"
+                />
+
+                <textarea
+                  rows="9"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Message"
+                  className="w-full rounded-[14px] border-2 border-black/90 bg-white/18 px-5 py-4 text-base text-black outline-none placeholder:text-black/78"
+                />
+
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  className="w-full rounded-[14px] bg-black px-6 py-4 text-base font-semibold text-white shadow-[0_16px_32px_rgba(0,0,0,0.22)] transition hover:bg-[#151515]"
+                >
+                  Submit
+                </button>
+              </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+
 function TripDetail({ wishlist, onToggleWishlist }) {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -1682,35 +2268,39 @@ function TripDetail({ wishlist, onToggleWishlist }) {
   const [specialRequest, setSpecialRequest] = useState("");
   const [activeSection, setActiveSection] = useState("overview");
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = getTodayInputValue();
 
   useEffect(() => {
-    axios
-      .get(`${API}/trips`)
-      .then((res) => {
-        const trips = res.data;
-        const selectedTrip = trips.find(
-          (item) => item._id === id || item._id === id?.toString()
-);
+    let isMounted = true;
 
-       setTrip(selectedTrip || trips[0]);
-       if ((selectedTrip || trips[0])?.packages?.length > 0) {
-         setSelectedPackage((selectedTrip || trips[0]).packages[0]);
-} 
+    const fetchTrip = async () => {
+      setLoading(true);
 
-        const finalTrip = selectedTrip || trips[0];
-        const batches = getBatchDates(finalTrip);
-        if (batches.length > 0) {
-          setTravelDate(batches[0].date);
-        } else {
-          setTravelDate("");
-        }
-      })
-      .catch((err) => {
-        console.error(err);
-        setError("Failed to load trip details.");
-      })
-      .finally(() => setLoading(false));
+      const { trip: loadedTrip, errorMessage } = await loadTripById(id);
+
+      if (!isMounted) return;
+
+      if (!loadedTrip) {
+        setTrip(null);
+        setSelectedPackage(null);
+        setTravelDate("");
+        setError(errorMessage || "Trip not found.");
+        setLoading(false);
+        return;
+      }
+
+      setTrip(loadedTrip);
+      setSelectedPackage(loadedTrip?.packages?.[0] || null);
+      setTravelDate(getBatchDates(loadedTrip)[0]?.date || "");
+      setError(errorMessage);
+      setLoading(false);
+    };
+
+    fetchTrip();
+
+    return () => {
+      isMounted = false;
+    };
   }, [id]);
 
   const meta = getTripMeta(trip || {});
@@ -1721,10 +2311,26 @@ function TripDetail({ wishlist, onToggleWishlist }) {
   const itineraryItems = buildFallbackItinerary(trip || {}, selectedPackage, packageGuide);
   const inclusionItems = buildFallbackInclusions(trip || {}, selectedPackage, packageGuide);
   const exclusionItems = buildFallbackExclusions(trip || {}, packageGuide);
+  const thingsToPackItems = buildFallbackThingsToPack(trip || {}, packageGuide);
+
+  useEffect(() => {
+    if (activeSection === "packing" && !thingsToPackItems.length) {
+      setActiveSection("overview");
+    }
+  }, [activeSection, thingsToPackItems.length]);
 
   const toggleWishlist = () => {
     if (!trip) return;
     onToggleWishlist(trip);
+  };
+
+  const handleBackNavigation = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+
+    navigate("/");
   };
 
 return ( 
@@ -1734,7 +2340,7 @@ return (
 
       <section className="mx-auto max-w-6xl px-6 pb-12 pt-28">
         <button
-          onClick={() => navigate(-1)}
+          onClick={handleBackNavigation}
           className="mb-6 rounded-lg border border-white/10 bg-white/10 px-4 py-2 transition hover:bg-white/15"
         >
           Back
@@ -1923,6 +2529,19 @@ return (
                       Exclusions
                     </button>
 
+                    {thingsToPackItems.length > 0 && (
+                      <button
+                        onClick={() => setActiveSection("packing")}
+                        className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
+                          activeSection === "packing"
+                            ? "bg-amber-500 text-white"
+                            : "border border-white/20 bg-white/10 text-gray-300 hover:bg-white/20"
+                        }`}
+                      >
+                        Things To Pack
+                      </button>
+                    )}
+
                     <button
                       onClick={() => setActiveSection("gallery")}
                       className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
@@ -2015,6 +2634,27 @@ return (
                       </div>
                     )}
 
+                    {activeSection === "packing" && thingsToPackItems.length > 0 && (
+                      <div>
+                        <h2 className="mb-4 text-2xl font-bold text-amber-300">
+                          Things To Pack
+                        </h2>
+                        <p className="mb-4 leading-7 text-slate-300">
+                          This checklist is shown only when route-specific guide details are available for the selected package.
+                        </p>
+                        <ul className="space-y-3 text-gray-300">
+                          {thingsToPackItems.map((item, index) => (
+                            <li
+                              key={`${item}-${index}`}
+                              className="rounded-xl border border-amber-300/20 bg-amber-400/10 p-4"
+                            >
+                              {item}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
                     {activeSection === "gallery" && (
                       <div>
                         <h2 className="mb-4 text-2xl font-bold text-purple-400">
@@ -2068,7 +2708,7 @@ return (
                       type="number"
                       min="1"
                       value={people}
-                      onChange={(e) => setPeople(Number(e.target.value))}
+                      onChange={(e) => setPeople(Math.max(1, Number(e.target.value) || 1))}
                       className="mb-4 w-full rounded-2xl border border-white/10 bg-black/30 p-3 text-white outline-none focus:border-orange-300"
                     />
 
@@ -2146,13 +2786,23 @@ return (
         </div>
       )}
 
-      <Footer />
+      <Footer featuredTrip={trip} />
       <FloatingWhatsApp />
     </main>
   );
 }
 
-function Footer() {
+function Footer({ featuredTrip }) {
+  const featuredTripId = getTripId(featuredTrip);
+  const featuredTripLabel = featuredTrip?.title || "Featured Trip";
+  const paymentOptions = [
+    { label: "PayPal", icon: FaCcPaypal, accent: "text-sky-300" },
+    { label: "Visa", icon: FaCcVisa, accent: "text-blue-300" },
+    { label: "Mastercard", icon: FaCcMastercard, accent: "text-orange-300" },
+    { label: "Google Pay", icon: FaGooglePay, accent: "text-slate-100" },
+    { label: "UPI", icon: null, accent: "text-emerald-300" },
+  ];
+
   return (
     <footer id="contact" className="relative z-10 mt-2 bg-black/80 text-white backdrop-blur-xl">
       <div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 md:grid-cols-2 lg:grid-cols-4">
@@ -2181,9 +2831,15 @@ function Footer() {
           </h3>
           <ul className="space-y-3 text-slate-300">
             <li>
-              <Link to="/trip/1" className="transition hover:text-orange-300">
-                Spiti Valley
-              </Link>
+              {featuredTripId ? (
+                <Link to={`/trip/${featuredTripId}`} className="transition hover:text-orange-300">
+                  {featuredTripLabel}
+                </Link>
+              ) : (
+                <Link to="/#trips-list" className="transition hover:text-orange-300">
+                  View current departures
+                </Link>
+              )}
             </li>
             <li>
               <span className="text-slate-500">
@@ -2214,8 +2870,23 @@ function Footer() {
               </Link>
             </li>
             <li>
-              <Link to="/#contact" className="transition hover:text-orange-300">
+              <Link to="/contact-us" className="transition hover:text-orange-300">
                 Contact Us
+              </Link>
+            </li>
+            <li>
+              <Link to="/privacy-policy" className="transition hover:text-orange-300">
+                Privacy Policy
+              </Link>
+            </li>
+            <li>
+              <Link to="/terms-and-conditions" className="transition hover:text-orange-300">
+                Terms & Conditions
+              </Link>
+            </li>
+            <li>
+              <Link to="/refund-cancellation" className="transition hover:text-orange-300">
+                Refund & Cancellation
               </Link>
             </li>
             <li className="flex items-center gap-2">
@@ -2304,23 +2975,45 @@ function Footer() {
 
       <div className="border-t border-white/10 bg-gradient-to-r from-black/60 via-black/30 to-black/60 px-6 py-6 text-sm text-slate-300">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 md:flex-row">
-          <p>The Meraki Tribe. All Rights Reserved.</p>
-          <div className="flex flex-wrap gap-3">
-            <span className="rounded-full border border-white/10 bg-white/6 px-3 py-1">
-              PayPal
-            </span>
-            <span className="rounded-full border border-white/10 bg-white/6 px-3 py-1">
-              Visa
-            </span>
-            <span className="rounded-full border border-white/10 bg-white/6 px-3 py-1">
-              MasterCard
-            </span>
-            <span className="rounded-full border border-white/10 bg-white/6 px-3 py-1">
-              UPI
-            </span>
-            <span className="rounded-full border border-white/10 bg-white/6 px-3 py-1">
-              GPay
-            </span>
+          <div className="flex flex-wrap items-center gap-3">
+            <img
+              src="/logo.png"
+              alt="The Meraki Tribe"
+              className="h-10 w-10 rounded-2xl border border-white/10 object-cover shadow-[0_10px_30px_rgba(0,0,0,0.24)]"
+            />
+            <div>
+              <p className="flex items-center gap-2 font-medium text-white">
+                <FaRegCopyright className="text-orange-300" />
+                The Meraki Tribe. All Rights Reserved.
+              </p>
+              <p className="mt-1 text-xs uppercase tracking-[0.22em] text-slate-500">
+                Curated travel experiences
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            {paymentOptions.map((option) => {
+              const Icon = option.icon;
+
+              return (
+                <span
+                  key={option.label}
+                  className="flex items-center gap-2 rounded-full border border-white/10 bg-white/6 px-4 py-2 text-sm font-medium text-slate-100 backdrop-blur-md"
+                >
+                  {Icon ? (
+                    <Icon className={`text-xl ${option.accent}`} />
+                  ) : (
+                    <span
+                      className={`rounded-full border border-white/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-[0.2em] ${option.accent}`}
+                    >
+                      UPI
+                    </span>
+                  )}
+                  <span>{option.label}</span>
+                </span>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -2433,6 +3126,11 @@ function App() {
           path="/trip/:id"
           element={<TripDetail wishlist={wishlist} onToggleWishlist={handleToggleWishlist} />}
         />
+        <Route path="/customize-tours" element={<CustomizeToursPage />} />
+        <Route path="/contact-us" element={<ContactPage />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+        <Route path="/terms-and-conditions" element={<TermsPage />} />
+        <Route path="/refund-cancellation" element={<RefundPolicyPage />} />
       </Routes>
     </>
   );

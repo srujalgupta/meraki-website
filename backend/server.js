@@ -1,3 +1,4 @@
+const fs = require("fs");
 const path = require("path");
 const mongoose = require("mongoose");
 require("dotenv").config();
@@ -9,25 +10,83 @@ const Trip = require("./models/Trip");
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
 const PUBLIC_DIR = path.join(__dirname, "public");
+const SAMPLE_DATA_DIR = path.join(__dirname, "sample-data");
 const CLIENT_ORIGINS = (process.env.CLIENT_ORIGINS || "http://localhost:3000,http://localhost:5173")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
+const allowAllOrigins = CLIENT_ORIGINS.includes("*");
 
-if (!process.env.MONGO_URI) {
-  throw new Error("MONGO_URI is required. Add it to backend/.env before starting the server.");
-}
+const slugifyTripValue = (value) =>
+  value
+    ?.toString()
+    .trim()
+    .toLowerCase()
+    .replace(/\s+x\s+/g, "-")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "";
+
+const createFallbackTripId = (trip, index) => {
+  const baseValue = trip?._id || trip?.id || trip?.title || `trip-${index + 1}`;
+  return slugifyTripValue(baseValue);
+};
+
+const normalizeTrip = (trip, index) => ({
+  ...trip,
+  _id: String(trip?._id || createFallbackTripId(trip, index)),
+  bestFor: Array.isArray(trip?.bestFor) ? trip.bestFor : [],
+  highlights: Array.isArray(trip?.highlights) ? trip.highlights : [],
+  itinerary: Array.isArray(trip?.itinerary) ? trip.itinerary : [],
+  inclusions: Array.isArray(trip?.inclusions) ? trip.inclusions : [],
+  exclusions: Array.isArray(trip?.exclusions) ? trip.exclusions : [],
+  gallery: Array.isArray(trip?.gallery) ? trip.gallery : [],
+  faqs: Array.isArray(trip?.faqs) ? trip.faqs : [],
+  batchDates: Array.isArray(trip?.batchDates) ? trip.batchDates : [],
+  packages: Array.isArray(trip?.packages) ? trip.packages : [],
+});
+
+const loadFallbackTrips = () => {
+  if (!fs.existsSync(SAMPLE_DATA_DIR)) {
+    return [];
+  }
+
+  return fs
+    .readdirSync(SAMPLE_DATA_DIR)
+    .filter((fileName) => fileName.toLowerCase().endsWith(".json"))
+    .map((fileName) => {
+      const filePath = path.join(SAMPLE_DATA_DIR, fileName);
+      return JSON.parse(fs.readFileSync(filePath, "utf8"));
+    })
+    .map(normalizeTrip);
+};
+
+const fallbackTrips = loadFallbackTrips();
+let isDatabaseAvailable = false;
+const publicAssetHandler = express.static(PUBLIC_DIR, {
+  fallthrough: true,
+  etag: true,
+  maxAge: "1h",
+});
 
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
 
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB connected"))
-  .catch((error) => {
-    console.error("MongoDB connection failed:", error.message);
-    process.exit(1);
-  });
+if (process.env.MONGO_URI) {
+  mongoose
+    .connect(process.env.MONGO_URI)
+    .then(() => {
+      isDatabaseAvailable = true;
+      console.log("MongoDB connected");
+    })
+    .catch((error) => {
+      console.error(
+        "MongoDB connection failed. Starting in bundled sample-data mode:",
+        error.message
+      );
+    });
+} else {
+  console.warn("MONGO_URI is not set. Starting in bundled sample-data mode.");
+}
 
 const getClientIp = (req) =>
   req.ip ||
@@ -180,11 +239,63 @@ const sanitizeTripPayload = (req, res, next) => {
   next();
 };
 
+const getTripsCollection = async () => {
+  if (isDatabaseAvailable) {
+    try {
+      const tripsFromDatabase = await Trip.find().lean();
+      if (tripsFromDatabase.length > 0) {
+        return tripsFromDatabase.map(normalizeTrip);
+      }
+    } catch (error) {
+      console.error("Failed to fetch trips from MongoDB. Falling back to sample data:", error.message);
+    }
+  }
+
+  return fallbackTrips;
+};
+
+const getTripById = async (tripId) => {
+  if (isDatabaseAvailable) {
+    try {
+      const tripFromDatabase = await Trip.findById(tripId).lean();
+      if (tripFromDatabase) {
+        return normalizeTrip(tripFromDatabase, 0);
+      }
+    } catch (error) {
+      if (error.name !== "CastError") {
+        console.error(
+          "Failed to fetch trip details from MongoDB. Falling back to sample data:",
+          error.message
+        );
+      }
+    }
+  }
+
+  const requestedId = slugifyTripValue(tripId);
+
+  return (
+    fallbackTrips.find((trip) => {
+      const lookupKeys = new Set(
+        [
+          trip?._id,
+          trip?.id,
+          trip?.title,
+          slugifyTripValue(trip?._id),
+          slugifyTripValue(trip?.id),
+          slugifyTripValue(trip?.title),
+        ].filter(Boolean)
+      );
+
+      return lookupKeys.has(tripId) || lookupKeys.has(requestedId);
+    }) || null
+  );
+};
+
 app.use(securityHeaders);
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || CLIENT_ORIGINS.includes(origin)) {
+      if (!origin || allowAllOrigins || CLIENT_ORIGINS.includes(origin)) {
         return callback(null, true);
       }
 
@@ -196,14 +307,19 @@ app.use(
 );
 app.use(express.json({ limit: "50kb" }));
 app.use(express.urlencoded({ extended: true, limit: "50kb" }));
-app.use(
-  staticAssetLimiter,
-  express.static(PUBLIC_DIR, {
-    fallthrough: true,
-    etag: true,
-    maxAge: "1h",
-  })
-);
+app.use((req, res, next) => {
+  if (!path.extname(req.path)) {
+    return next();
+  }
+
+  return staticAssetLimiter(req, res, (error) => {
+    if (error) {
+      return next(error);
+    }
+
+    return publicAssetHandler(req, res, next);
+  });
+});
 
 app.get("/", readLimiter, (req, res) => {
   res.json({
@@ -214,14 +330,41 @@ app.get("/", readLimiter, (req, res) => {
 
 app.get("/trips", readLimiter, async (req, res) => {
   try {
-    const trips = await Trip.find();
+    const trips = await getTripsCollection();
     res.json(trips);
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
+app.get("/trips/:id", readLimiter, async (req, res) => {
+  try {
+    const trip = await getTripById(req.params.id);
+
+    if (!trip) {
+      return res.status(404).json({
+        success: false,
+        message: "Trip not found",
+      });
+    }
+
+    return res.json(trip);
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
 app.post("/trips", writeLimiter, sensitiveActionLimiter, sanitizeTripPayload, async (req, res) => {
+  if (!isDatabaseAvailable) {
+    return res.status(503).json({
+      success: false,
+      message: "Database is not configured. The API is currently running in read-only sample mode.",
+    });
+  }
+
   try {
     const newTrip = new Trip(req.body);
     await newTrip.save();
@@ -245,6 +388,13 @@ app.put(
   sensitiveActionLimiter,
   sanitizeTripPayload,
   async (req, res) => {
+    if (!isDatabaseAvailable) {
+      return res.status(503).json({
+        success: false,
+        message: "Database is not configured. The API is currently running in read-only sample mode.",
+      });
+    }
+
     try {
       const updatedTrip = await Trip.findByIdAndUpdate(req.params.id, req.body, {
         new: true,
