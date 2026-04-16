@@ -13,9 +13,10 @@
   --text-main: #f8fafc;
   --text-muted: #cbd5e1;
   --text-soft: #94a3b8;
-  --brand: #fb923c;
-  --brand-strong: #f97316;
-  --brand-glow: rgba(249, 115, 22, 0.24);
+  --brand: #f59e0b;
+  --brand-strong: #ea580c;
+  --brand-secondary: #0f766e;
+  --brand-glow: rgba(245, 158, 11, 0.24);
 }
 
 body {
@@ -23,8 +24,8 @@ body {
   font-family: "Manrope", "Segoe UI", sans-serif;
   color: var(--text-main);
   background:
-    radial-gradient(circle at top left, rgba(251, 146, 60, 0.12), transparent 30%),
-    radial-gradient(circle at top right, rgba(56, 189, 248, 0.12), transparent 26%),
+    radial-gradient(circle at top left, rgba(245, 158, 11, 0.13), transparent 30%),
+    radial-gradient(circle at top right, rgba(15, 118, 110, 0.13), transparent 28%),
     linear-gradient(180deg, #05060a 0%, #080b12 42%, #05070d 100%);
   overflow-x: hidden;
 }
@@ -183,7 +184,7 @@ video {
 }
 
 .section-kicker {
-  color: #fdba74;
+  color: #fcd34d;
   letter-spacing: 0.32em;
   text-transform: uppercase;
 }
@@ -223,6 +224,37 @@ video {
   mask-image: radial-gradient(circle at center, black 50%, transparent 100%);
 }
 
+.brand-ring {
+  box-shadow:
+    0 0 0 1px rgba(245, 158, 11, 0.18),
+    0 0 0 6px rgba(15, 118, 110, 0.08);
+}
+
+.brand-sheen {
+  position: relative;
+  overflow: hidden;
+}
+
+.brand-sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    120deg,
+    transparent 20%,
+    rgba(245, 158, 11, 0.08) 45%,
+    rgba(15, 118, 110, 0.08) 60%,
+    transparent 85%
+  );
+}
+
+.video-smooth {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: transform;
+}
+
 @media (max-width: 640px) {
   .animate-marquee {
     animation-duration: 24s;
@@ -232,6 +264,21 @@ video {
   .animate-floatTwo,
   .animate-floatThree {
     animation-duration: 18s;
+  }
+
+  .glass-card {
+    border-radius: 24px;
+  }
+
+  .section-title {
+    line-height: 1.08;
+  }
+
+  body {
+    background:
+      radial-gradient(circle at top left, rgba(245, 158, 11, 0.1), transparent 30%),
+      radial-gradient(circle at top right, rgba(15, 118, 110, 0.1), transparent 28%),
+      linear-gradient(180deg, #05060a 0%, #070a11 42%, #05070d 100%);
   }
 }
 

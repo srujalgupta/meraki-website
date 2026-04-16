@@ -1,0 +1,92 @@
+{
+  "title": "Kumbhalgarh x Jawai",
+  "location": "Rajasthan",
+  "price": 5499,
+  "duration": "2N/3D",
+  "image": "/kumbhalgarh-jawai/kumbhalgarh-cover.jpg",
+  "description": "A short Rajasthan escape that blends heritage, nature, and wildlife with a Kumbhalgarh fort visit, a Ranakpur stop, and an evening Jawai leopard safari.",
+  "about": "Kumbhalgarh x Jawai is a compact 2N/3D Rajasthan journey built around a heritage-and-wildlife route from Ahmedabad. The itinerary PDF shows an early-morning Kumbhalgarh check-in, fort visit, folk evening, a Day 2 drive via Ranakpur Jain Temple, and an evening Jawai leopard safari before the return to Ahmedabad.",
+  "bestFor": [
+    "Weekend travelers looking for a short getaway",
+    "Wildlife and leopard safari enthusiasts",
+    "Travelers who enjoy heritage forts and scenic drives",
+    "Friends, couples, and small groups from Ahmedabad"
+  ],
+  "highlights": [
+    "2N/3D Rajasthan circuit from Ahmedabad",
+    "Visit to Kumbhalgarh Fort, home to one of the world's longest fort walls",
+    "Ranakpur Jain Temple stop on the Jawai route",
+    "Evening Jawai leopard safari included in the trip flow",
+    "6 meals included: 2 breakfasts, 2 lunches, and 2 dinners",
+    "Traditional folk dance and DJ night at the Kumbhalgarh stay"
+  ],
+  "itinerary": [
+    {
+      "title": "Departure from Ahmedabad",
+      "description": "Board from Ahmedabad and travel overnight toward Kumbhalgarh for the start of the trip."
+    },
+    {
+      "title": "Kumbhalgarh exploration",
+      "description": "Reach Kumbhalgarh early morning, check in, enjoy breakfast and leisure time, visit Kumbhalgarh Fort after lunch, then return for a folk dance, DJ night, dinner, and overnight stay."
+    },
+    {
+      "title": "Ranakpur and Jawai safari",
+      "description": "Travel toward Jawai via Ranakpur Jain Temple, take a lunch break on the way, and head for an evening Jawai leopard safari before beginning the return."
+    },
+    {
+      "title": "Arrival back in Ahmedabad",
+      "description": "Reach Ahmedabad early morning with buffer time for onward plans."
+    }
+  ],
+  "inclusions": [
+    "Comfortable AC bus travel from Ahmedabad to Jawai and return",
+    "4x4 jeep transfer from the stay to Kumbhalgarh Fort and return",
+    "6 meals in total: 2 breakfasts, 2 lunches, and 2 dinners",
+    "Stay as per the package occupancy plan",
+    "Jawai leopard safari as part of the itinerary flow",
+    "Trip coordination throughout the route"
+  ],
+  "exclusions": [
+    "Alcohol, mineral water, and food or beverages not included in the package",
+    "Extra refreshments and personal purchases during the trip",
+    "Entry fees or add-ons not explicitly mentioned in inclusions",
+    "Anything not mentioned in the itinerary inclusions"
+  ],
+  "gallery": [
+    "/kumbhalgarh-jawai/kumbhalgarh-cover.jpg",
+    "/kumbhalgarh-jawai/_P2A7134.jpg",
+    "/kumbhalgarh-jawai/_P2A7440.jpg",
+    "/kumbhalgarh-jawai/_P2A7398.jpg",
+    "/kumbhalgarh-jawai/_P2A7186.jpg",
+    "/kumbhalgarh-jawai/_P2A7401.jpg"
+  ],
+  "faqs": [
+    {
+      "question": "Where does this trip start from?",
+      "answer": "The itinerary PDF lists Ahmedabad as the departure point for this trip."
+    },
+    {
+      "question": "Are meals included?",
+      "answer": "Yes. The PDF lists 6 meals in total: 2 breakfasts, 2 lunches, and 2 dinners."
+    },
+    {
+      "question": "Is the Jawai leopard safari part of the route?",
+      "answer": "Yes. The Day 2 itinerary specifically includes the Jawai leopard safari."
+    },
+    {
+      "question": "What is the stay setup for quad sharing?",
+      "answer": "The PDF notes that quad sharing may be arranged with two extra mattresses instead of four separate beds."
+    }
+  ],
+  "rating": 4.9,
+  "category": "Wildlife & Heritage",
+  "trending": true,
+  "packages": [
+    {
+      "name": "Kumbhalgarh x Jawai Escape",
+      "price": 5499,
+      "duration": "2N/3D",
+      "pdf": "Kumbhalgarh x Jawai Itinerary.pdf"
+    }
+  ]
+}

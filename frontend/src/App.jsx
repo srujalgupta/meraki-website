@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { Routes, Route, useNavigate, useParams, Link } from "react-router-dom";
+import { useRef } from "react";
+import { Routes, Route, useNavigate, useParams, Link, useLocation } from "react-router-dom";
 import {
   FaInstagram,
   FaWhatsapp,
@@ -18,12 +19,18 @@ import {
   FaFilter,
   FaChevronDown,
   FaChevronUp,
+  FaHome,
 } from "react-icons/fa";
 import API from "./api";
 
 const WHATSAPP_NUMBER = "919662351358";
 
 const destinationMeta = {
+  kumbhalgarhJawai: {
+    bestTime: "October to March",
+    weather:
+      "Warm days, cooler evenings, and pleasant safari conditions through the main Rajasthan travel season.",
+  },
   spiti: {
     bestTime: "June to September",
     weather: "Cold and scenic weather, usually between 5\u00B0C to 18\u00B0C during the main season.",
@@ -85,7 +92,7 @@ const defaultFAQs = [
   {
     question: "How do I book a trip?",
     answer:
-      "Select your preferred batch, enter traveler details, and click Book Now. Your trip details will be sent directly on WhatsApp for confirmation.",
+      "Enter your traveler details and click Book Now. Your trip request will go directly to WhatsApp for confirmation and next steps.",
   },
   {
     question: "Are meals included in the package?",
@@ -112,6 +119,9 @@ const defaultFAQs = [
 const getTripMeta = (trip) => {
   const combined = `${trip?.title || ""} ${trip?.location || ""}`.toLowerCase();
 
+  if (combined.includes("kumbhalgarh") || combined.includes("jawai")) {
+    return destinationMeta.kumbhalgarhJawai;
+  }
   if (combined.includes("spiti")) return destinationMeta.spiti;
 
   return destinationMeta.default;
@@ -119,11 +129,7 @@ const getTripMeta = (trip) => {
 
 const getBatchDates = (trip) => {
   if (trip?.batchDates?.length) return trip.batchDates;
-  return [
-    { date: "2026-04-20", slots: 8 },
-    { date: "2026-05-10", slots: 5 },
-    { date: "2026-06-01", slots: 3 },
-  ];
+  return [];
 };
 
 const getTripFAQs = (trip) => {
@@ -154,7 +160,7 @@ const tripPdfGuides = {
       {
         title: "Delhi departure and route briefing",
         description:
-          "Board from Delhi, settle into the journey, and begin the long but scenic drive toward the mountains with trip coordination and batch guidance before departure.",
+          "Board from Delhi, settle into the journey, and begin the long but scenic drive toward the mountains with clear coordination before departure.",
       },
       {
         title: "Sangla or Rakcham stay",
@@ -195,7 +201,7 @@ const tripPdfGuides = {
     inclusions: [
       "Stays mentioned in the PDF route plan, including Kaza and Chandratal Swiss Camps",
       "12 meals in total as listed in the PDF: 6 breakfasts and 6 dinners",
-      "Trip coordination and boarding guidance for the batch",
+      "Trip coordination and boarding guidance before departure",
       "Road-trip style movement through the full Summer Spiti circuit",
     ],
     exclusions: [
@@ -216,7 +222,7 @@ const tripPdfGuides = {
     ],
     itinerary: [
       {
-        title: "Manali arrival and batch start",
+        title: "Manali arrival and route start",
         description:
           "Reach Manali, connect with the group, and settle in for the night before heading into the higher sections of the valley route.",
       },
@@ -245,7 +251,7 @@ const tripPdfGuides = {
       "Manali, Kaza, and Chandratal stay plan as listed in the package PDF",
       "8 meals in total as listed in the PDF: 4 breakfasts and 4 dinners",
       "Trip coordination throughout the short-circuit route",
-      "Batch support for transfers and check-ins during the trip",
+      "Support for transfers and check-ins during the trip",
     ],
     exclusions: [
       "Travel to the starting point before package reporting time",
@@ -372,11 +378,65 @@ const tripPdfGuides = {
       "Anything not clearly mentioned in the package itinerary",
     ],
   },
+  "kumbhalgarh x jawai itinerary.pdf": {
+    about:
+      "Kumbhalgarh x Jawai is a short Rajasthan circuit built for travelers who want heritage, scenic countryside, and wildlife in one compact getaway. The itinerary PDF shows an Ahmedabad departure, an early Kumbhalgarh arrival with fort exploration and a cultural evening, followed by a Ranakpur stop and an evening Jawai leopard safari before returning.",
+    highlights: [
+      "2N/3D Rajasthan escape from Ahmedabad",
+      "Kumbhalgarh Fort visit with local exploration around the stay",
+      "Ranakpur Jain Temple stop built into the Jawai route",
+      "Evening Jawai leopard safari as a core trip experience",
+      "6 meals included in the package PDF: 2 breakfasts, 2 lunches, and 2 dinners",
+      "Traditional folk dance and DJ night during the Kumbhalgarh stay",
+    ],
+    itinerary: [
+      {
+        title: "Ahmedabad departure",
+        description:
+          "Board from Ahmedabad and begin the overnight journey toward Kumbhalgarh for a short but experience-led Rajasthan circuit.",
+      },
+      {
+        title: "Kumbhalgarh arrival and fort visit",
+        description:
+          "Reach Kumbhalgarh early morning, check in, have breakfast, relax at the stay, then head out after lunch to visit Kumbhalgarh Fort before returning for the evening cultural program, dinner, and overnight stay.",
+      },
+      {
+        title: "Ranakpur and Jawai leopard safari",
+        description:
+          "Travel toward Jawai via Ranakpur Jain Temple, pause for lunch on the route, and continue to the evening Jawai leopard safari, which is one of the biggest highlights of the package.",
+      },
+      {
+        title: "Return to Ahmedabad",
+        description:
+          "Begin the return after the Jawai leg and reach Ahmedabad early morning with enough buffer for onward plans.",
+      },
+    ],
+    inclusions: [
+      "Comfortable AC bus from Ahmedabad to Jawai and return as listed in the PDF",
+      "4x4 jeep transfer from the stay to Kumbhalgarh Fort and return",
+      "6 meals in total: 2 breakfasts, 2 lunches, and 2 dinners",
+      "Stay as per the package occupancy plan",
+      "Jawai leopard safari as part of the itinerary flow",
+      "Trip coordination before and during the route",
+    ],
+    exclusions: [
+      "Alcohol, mineral water, and food or beverages not included in the package",
+      "Extra refreshments, snacks, and personal purchases during the trip",
+      "Entry fees or optional add-ons not explicitly mentioned in inclusions",
+      "Anything not specifically listed in the itinerary package",
+    ],
+  },
 };
 
 const getPackageGuide = (selectedPackage) => {
   const pdfName = selectedPackage?.pdf?.split("/").pop()?.toLowerCase();
   return pdfName ? tripPdfGuides[pdfName] || null : null;
+};
+
+const getPdfHref = (pdfPath) => {
+  if (!pdfPath) return "#";
+  const normalizedPdfPath = pdfPath.replace(/^\/+/, "");
+  return `${API}/${encodeURI(normalizedPdfPath)}`;
 };
 
 const getDurationLabel = (trip, selectedPackage) =>
@@ -484,7 +544,7 @@ const buildFallbackInclusions = (trip, selectedPackage, packageGuide) => {
     `${getDurationLabel(trip, selectedPackage)} stay as per selected package`,
     "Trip coordination and on-ground support",
     "Sightseeing and transfers mentioned in the itinerary",
-    "Basic assistance with check-in, batches, and travel planning",
+    "Basic assistance with check-in and travel planning",
   ];
 };
 
@@ -537,18 +597,56 @@ const openWhatsAppBooking = (
 };
 
 function LiveBackground() {
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const ensurePlayback = () => {
+      const playAttempt = video.play();
+      if (playAttempt?.catch) playAttempt.catch(() => {});
+    };
+
+    const restartPlayback = () => {
+      video.currentTime = 0;
+      ensurePlayback();
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) ensurePlayback();
+    };
+
+    ensurePlayback();
+
+    video.addEventListener("stalled", ensurePlayback);
+    video.addEventListener("suspend", ensurePlayback);
+    video.addEventListener("ended", restartPlayback);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      video.removeEventListener("stalled", ensurePlayback);
+      video.removeEventListener("suspend", ensurePlayback);
+      video.removeEventListener("ended", restartPlayback);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
   return (
-    <div className="fixed inset-0 z-0">
+    <div className="fixed inset-0 z-0 overflow-hidden">
       <video
+        ref={videoRef}
         autoPlay
         loop
         muted
         playsInline
-        className="absolute top-0 left-0 h-full w-full object-cover"
+        preload="auto"
+        disablePictureInPicture
+        className="video-smooth absolute top-0 left-0 h-full w-full object-cover"
       >
         <source src="/hero.mp4" type="video/mp4" />
       </video>
-      <div className="absolute inset-0 bg-black/60"></div>
+      <div className="absolute inset-0 bg-black/62"></div>
     </div>
   );
 }
@@ -561,7 +659,7 @@ function Navbar({ wishlistCount = 0 }) {
           <img
             src="/logo.png"
             alt="logo"
-            className="h-10 w-10 rounded-2xl border border-white/15 object-cover shadow-[0_10px_30px_rgba(0,0,0,0.28)] transition duration-500 hover:scale-105 sm:h-11 sm:w-11"
+            className="brand-ring h-10 w-10 rounded-2xl border border-white/15 object-cover shadow-[0_10px_30px_rgba(0,0,0,0.28)] transition duration-500 hover:scale-105 sm:h-11 sm:w-11"
           />
           <div className="min-w-0">
             <p className="text-[10px] uppercase tracking-[0.28em] text-orange-300/80">
@@ -573,9 +671,28 @@ function Navbar({ wishlistCount = 0 }) {
           </div>
         </Link>
 
-        <div className="flex items-center gap-3">
-          <div className="rounded-full border border-white/10 bg-white/8 px-3 py-2 text-xs text-slate-200 shadow-[0_8px_24px_rgba(0,0,0,0.18)] sm:px-4 sm:text-sm">
-            Wishlist: <span className="font-semibold text-orange-300">{wishlistCount}</span>
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            to="/"
+            className="flex min-h-[44px] items-center gap-2 rounded-full border border-white/10 bg-white/8 px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(0,0,0,0.18)] transition duration-300 hover:scale-105 hover:border-orange-300/30 hover:bg-white/12"
+          >
+            <FaHome className="text-orange-300" />
+            Home
+          </Link>
+
+          <Link
+            to="/#trips-list"
+            className="flex min-h-[44px] items-center rounded-full border border-white/10 bg-white/8 px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(0,0,0,0.18)] transition duration-300 hover:scale-105 hover:border-orange-300/30 hover:bg-white/12"
+          >
+            Trips
+          </Link>
+
+          <div className="flex min-h-[44px] items-center gap-2 rounded-full border border-white/10 bg-white/8 px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(0,0,0,0.18)] transition duration-300 hover:border-orange-300/30 hover:bg-white/12">
+            <FaHeart className="text-orange-300" />
+            Wishlist
+            <span className="rounded-full bg-orange-300/15 px-2 py-0.5 text-xs font-semibold text-orange-200">
+              {wishlistCount}
+            </span>
           </div>
 
           <a
@@ -671,7 +788,7 @@ function Reviews({ reviews }) {
             {duplicatedReviews.map((review, index) => (
               <div
                 key={`${review.id}-${index}`}
-                className="glass-card w-[340px] shrink-0 rounded-[28px] p-6"
+                className="glass-card w-[290px] shrink-0 rounded-[28px] border border-amber-200/10 p-6 sm:w-[340px]"
               >
                 <div className="mb-4 flex items-center gap-4">
                   <img
@@ -698,6 +815,219 @@ function Reviews({ reviews }) {
               </div>
             ))}
           </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FeaturedSpotlight({ trip, onViewTrip }) {
+  if (!trip) return null;
+
+  const selectedPackage = trip?.packages?.[0] || null;
+  const packageGuide = getPackageGuide(selectedPackage);
+  const overview = buildFallbackOverview(trip, selectedPackage, packageGuide);
+  const highlights = buildFallbackHighlights(trip, selectedPackage, packageGuide).slice(0, 4);
+
+  return (
+    <section className="mb-12 sm:mb-16">
+      <div className="mb-8">
+        <p className="section-kicker mb-3 text-[11px]">Featured Departure</p>
+        <h2 className="section-title text-3xl font-semibold text-white sm:text-4xl">
+          The trip we would put in front of every first-time traveler
+        </h2>
+        <p className="mt-4 max-w-3xl text-base leading-8 text-slate-300">
+          A closer look at one live route with the clearest mix of place, planning,
+          and traveler appeal.
+        </p>
+      </div>
+
+      <div className="glass-card overflow-hidden rounded-[34px]">
+        <div className="grid gap-0 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="relative min-h-[340px] overflow-hidden">
+            <img
+              src={trip.image}
+              alt={trip.title}
+              className="h-full w-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+            <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
+              <p className="mb-3 text-[11px] uppercase tracking-[0.28em] text-orange-200/80">
+                Featured Experience
+              </p>
+              <h2 className="font-['Sora'] text-3xl font-semibold text-white sm:text-4xl">
+                {trip.title}
+              </h2>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <span className="rounded-full border border-white/10 bg-black/35 px-4 py-2 text-xs uppercase tracking-[0.24em] text-slate-100 backdrop-blur-md">
+                  {trip.location || "Curated route"}
+                </span>
+                <span className="rounded-full border border-white/10 bg-black/35 px-4 py-2 text-xs uppercase tracking-[0.24em] text-orange-200 backdrop-blur-md">
+                  {selectedPackage?.duration || trip.duration || "Signature departure"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6 sm:p-8">
+            <p className="section-kicker mb-4 text-[11px]">Spotlight Route</p>
+            <p className="text-base leading-8 text-slate-300">
+              {overview}
+            </p>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              {highlights.map((highlight, index) => (
+                <div
+                  key={index}
+                  className="rounded-[22px] border border-white/10 bg-white/6 p-4 text-sm leading-7 text-slate-200"
+                >
+                  {highlight}
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-[24px] border border-orange-300/15 bg-orange-400/10 p-4">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.24em] text-slate-400">
+                  Starting From
+                </p>
+                <p className="mt-2 font-['Sora'] text-3xl font-semibold text-orange-200">
+                  {"\u20B9"}{selectedPackage?.price || trip.price}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={onViewTrip}
+                  className="rounded-2xl border border-white/10 bg-white/8 px-5 py-3 font-semibold text-white transition hover:bg-white/12"
+                >
+                  Explore Trip
+                </button>
+
+                <button
+                  onClick={() => openWhatsAppBooking(trip, 1, "Not selected", "Not selected", "Double Sharing", "Interested in this featured trip", selectedPackage)}
+                  className="rounded-2xl bg-gradient-to-r from-green-500 to-emerald-500 px-5 py-3 font-semibold text-white transition hover:from-green-400 hover:to-emerald-400"
+                >
+                  Book on WhatsApp
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function BookingFlowSection() {
+  const steps = [
+    {
+      number: "01",
+      title: "Discover the right route",
+      description:
+        "Start with the live departures, compare duration and budget, and open the trip that matches your kind of travel.",
+    },
+    {
+      number: "02",
+      title: "Share your preferences on WhatsApp",
+      description:
+        "Tell us your city, dates, room style, and any questions. We keep the booking flow direct and human instead of hiding it behind forms.",
+    },
+    {
+      number: "03",
+      title: "Confirm and travel with clarity",
+      description:
+        "Once the route and package are locked, we share the next details clearly so the trip feels sorted before departure day.",
+    },
+  ];
+
+  return (
+    <section className="py-24 text-white">
+      <div className="mx-auto max-w-7xl px-6">
+        <p className="section-kicker mb-4 text-center text-xs">How It Works</p>
+        <h2 className="section-title mx-auto max-w-4xl text-center text-4xl font-semibold text-white md:text-5xl">
+          A booking flow that feels personal, not robotic
+        </h2>
+        <p className="mx-auto mt-5 max-w-3xl text-center text-base leading-8 text-slate-300">
+          We keep the digital experience clean, then move the real planning to WhatsApp
+          where travelers can ask what they actually care about before committing.
+        </p>
+
+        <div className="mt-12 grid gap-6 lg:grid-cols-3">
+          {steps.map((step) => (
+            <article
+              key={step.number}
+              className="glass-card rounded-[28px] p-6 transition duration-500 hover:-translate-y-2 hover:border-orange-300/25"
+            >
+              <p className="mb-5 font-['Sora'] text-4xl font-semibold text-orange-300/85">
+                {step.number}
+              </p>
+              <h3 className="font-['Sora'] text-2xl font-semibold text-white">
+                {step.title}
+              </h3>
+              <p className="mt-4 text-base leading-8 text-slate-300">
+                {step.description}
+              </p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function BrandStorySection() {
+  const brandPoints = [
+    "Trips shaped around route quality, not just low prices.",
+    "A planning style that stays human from the first message onward.",
+    "Smaller, more intentional departures that feel cared for.",
+    "Travel pages built from real routes, PDFs, and actual destination context.",
+  ];
+
+  return (
+    <section className="pb-24 text-white">
+      <div className="mx-auto max-w-7xl px-6">
+        <div className="mb-8">
+          <p className="section-kicker mb-3 text-[11px]">Brand Story</p>
+          <h2 className="section-title text-3xl font-semibold text-white sm:text-4xl">
+            What makes the brand feel more intentional than a generic travel listing
+          </h2>
+          <p className="mt-4 max-w-3xl text-base leading-8 text-slate-300">
+            The site should not only show trips. It should also explain how The Meraki
+            Tribe thinks about routes, communication, and traveler experience.
+          </p>
+        </div>
+
+        <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
+        <div className="glass-card rounded-[32px] p-7 sm:p-8">
+          <p className="section-kicker mb-4 text-[11px]">About The Brand</p>
+          <h2 className="section-title text-3xl font-semibold text-white sm:text-4xl">
+            The Meraki Tribe is built for travelers who want a trip to feel considered
+          </h2>
+          <p className="mt-5 text-base leading-8 text-slate-300">
+            We are not trying to flood the site with random departures. The idea is to
+            keep the routes selective, make the pages more honest, and create enough
+            confidence that a traveler can say yes without feeling like they are guessing.
+          </p>
+          <p className="mt-4 text-base leading-8 text-slate-300">
+            That means clearer itineraries, tighter communication, better route curation,
+            and a more grounded booking experience than generic travel listing sites.
+          </p>
+        </div>
+
+        <div className="grid gap-4">
+          {brandPoints.map((point, index) => (
+            <div
+              key={index}
+              className="rounded-[26px] border border-white/10 bg-white/6 p-5 backdrop-blur-md"
+            >
+              <p className="text-[11px] uppercase tracking-[0.24em] text-orange-300/75">
+                Meraki Standard {index + 1}
+              </p>
+              <p className="mt-3 text-base leading-8 text-slate-200">{point}</p>
+            </div>
+          ))}
+        </div>
         </div>
       </div>
     </section>
@@ -786,11 +1116,10 @@ function SearchFilters({
 
 function TripCard({ trip, onClick, isWishlisted, onToggleWishlist }) {
   const meta = getTripMeta(trip);
-  const batches = getBatchDates(trip);
-  const nextBatch = batches[0];
+  const tripDuration = trip?.duration || trip?.packages?.[0]?.duration || "Curated trip";
 
   return (
-    <article className="touch-card glass-card group overflow-hidden rounded-[32px] transition duration-500 hover:-translate-y-3 hover:border-orange-300/25 hover:shadow-[0_30px_90px_rgba(0,0,0,0.42)]">
+    <article className="touch-card glass-card group flex h-full flex-col overflow-hidden rounded-[32px] transition duration-500 hover:-translate-y-3 hover:border-orange-300/25 hover:shadow-[0_30px_90px_rgba(0,0,0,0.42)]">
       <div className="relative cursor-pointer overflow-hidden" onClick={onClick}>
         <img
           src={trip.image}
@@ -817,15 +1146,15 @@ function TripCard({ trip, onClick, isWishlisted, onToggleWishlist }) {
         </button>
 
         <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-3">
-          <div>
+          <div className="min-w-0 flex-1">
             <p className="mb-2 text-[11px] uppercase tracking-[0.28em] text-orange-200/80">
               {trip.location || "Adventure destination"}
             </p>
-            <h3 className="font-['Sora'] text-xl font-semibold text-white sm:text-2xl">
+            <h3 className="line-clamp-2 min-h-[3.5rem] font-['Sora'] text-xl font-semibold text-white sm:text-2xl">
               {trip.title}
             </h3>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-black/35 px-3 py-2 text-right backdrop-blur-md">
+          <div className="shrink-0 rounded-2xl border border-white/10 bg-black/35 px-3 py-2 text-right backdrop-blur-md">
             <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400">Starting From</p>
             <p className="text-lg font-bold text-orange-300">
               {"\u20B9"}{trip.price}
@@ -834,8 +1163,8 @@ function TripCard({ trip, onClick, isWishlisted, onToggleWishlist }) {
         </div>
       </div>
 
-      <div className="p-5 sm:p-6">
-        <p className="text-sm leading-7 text-slate-300 line-clamp-3">
+      <div className="flex flex-1 flex-col p-5 sm:p-6">
+        <p className="min-h-[5.25rem] text-sm leading-7 text-slate-300 line-clamp-3">
           {trip.description ||
             "A beautiful travel experience filled with scenic views, local culture, and memorable moments."}
         </p>
@@ -848,11 +1177,11 @@ function TripCard({ trip, onClick, isWishlisted, onToggleWishlist }) {
             <FaCloudSun /> {meta.weather}
           </p>
           <p className="flex items-center gap-2 text-sm text-emerald-200">
-            <FaUsers /> Next batch: {nextBatch.date} {"\u2022"} {nextBatch.slots} slots left
+            <FaUsers /> Duration: {tripDuration}
           </p>
         </div>
 
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+        <div className="mt-6 flex flex-col gap-3 sm:mt-auto sm:flex-row">
           <button
             onClick={onClick}
             className="min-h-[48px] flex-1 rounded-2xl border border-white/10 bg-white/6 px-4 py-3 font-semibold text-white transition duration-300 hover:border-orange-300/30 hover:bg-white/10 active:scale-[0.98]"
@@ -876,22 +1205,13 @@ function TripCard({ trip, onClick, isWishlisted, onToggleWishlist }) {
 function Home({ wishlist, onToggleWishlist }) {
   const [trips, setTrips] = useState([]);
   // POPUP STATE
-  const [showPopup, setShowPopup] = useState(() => {
-  const lastShown = localStorage.getItem("popupTime");
-  const now = new Date().getTime();
-
-  if (!lastShown || now - lastShown > 24 * 60 * 60 * 1000) {
-    return true;
-  }
-  return false;
-});
+  const [showPopup, setShowPopup] = useState(true);
   // FORM STATE
   const [destination, setDestination] = useState("");
   const [budget, setBudget] = useState("");
   const [date, setDate] = useState("");
   const handleClosePopup = () => {
   setShowPopup(false);
-  localStorage.setItem("popupTime", new Date().getTime());
 };
   const handlePlanTrip = () => {
   const message = `Hello, I want to plan a trip:
@@ -962,6 +1282,69 @@ Travel Date: ${date || "Not specified"}`;
     return updatedTrips;
   }, [trips, searchTerm, selectedLocation, maxPrice, sortBy]);
 
+  const featuredTrip = useMemo(() => {
+    return filteredTrips.find((trip) => trip.trending) || filteredTrips[0] || trips[0] || null;
+  }, [filteredTrips, trips]);
+
+  const trustMetrics = useMemo(() => {
+    const totalPackages = trips.reduce(
+      (sum, trip) => sum + (Array.isArray(trip.packages) ? trip.packages.length : 0),
+      0
+    );
+    const averageRating = trips.length
+      ? (trips.reduce((sum, trip) => sum + (Number(trip.rating) || 0), 0) / trips.length).toFixed(1)
+      : "4.9";
+
+    return [
+      {
+        label: "Live departures",
+        value: `${trips.length || 1}`,
+        description: "Real trips currently active in the app, not filler cards.",
+      },
+      {
+        label: "Package variants",
+        value: `${totalPackages || 1}`,
+        description: "Different trip formats and pricing options across the live routes.",
+      },
+      {
+        label: "Visible rating",
+        value: averageRating,
+        description: "Average rating shown across the currently listed trips.",
+      },
+      {
+        label: "Traveler stories",
+        value: `${reviews.length}+`,
+        description: "Review cards reinforcing the tone, comfort, and coordination people remember.",
+      },
+    ];
+  }, [trips, reviews]);
+
+  const homeFaqs = useMemo(
+    () => [
+      {
+        question: "Why are there only a few trips on the website right now?",
+        answer:
+          "We prefer showing focused, real departures instead of filling the site with placeholder routes. It keeps the planning more honest and the communication more accurate.",
+      },
+      {
+        question: "Do I need to pay directly on the website?",
+        answer:
+          "No. The website helps you explore routes and share preferences, while the actual confirmation happens with our team on WhatsApp.",
+      },
+      {
+        question: "Can I ask for details before booking?",
+        answer:
+          "Yes. You can reach out with questions about route flow, stays, pickup, package differences, or suitability before you commit.",
+      },
+      {
+        question: "Are the itinerary sections based on real route info?",
+        answer:
+          "Yes. We are increasingly grounding trip pages in actual PDFs, route details, and trip-specific information instead of generic copy.",
+      },
+    ],
+    []
+  );
+
   const hasActiveFilters =
     Boolean(searchTerm.trim()) ||
     Boolean(selectedLocation) ||
@@ -975,18 +1358,13 @@ Travel Date: ${date || "Not specified"}`;
     setMaxPrice("");
   };
 
-  const featuredBatches = useMemo(() => {
-    const tripsWithBatches = trips.flatMap((trip) => getBatchDates(trip));
-    return tripsWithBatches.length;
-  }, [trips]);
-
   return (
     <main className="relative z-10 min-h-screen text-white">
       <LiveBackground />
       <Navbar wishlistCount={wishlist.length} />
 
       <section id="trips" className="mx-auto max-w-7xl px-6 pb-12 pt-28">
-        <div className="noise-overlay mb-12 rounded-[36px] border border-white/10 bg-black/18 px-6 py-8 shadow-[0_30px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl animate-fadeInUp sm:mb-16 sm:px-8 sm:py-10">
+        <div className="noise-overlay brand-sheen mb-12 rounded-[36px] border border-white/10 bg-black/18 px-6 py-8 shadow-[0_30px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl animate-fadeInUp sm:mb-16 sm:px-8 sm:py-10">
           <p className="section-kicker mb-4 text-[11px] sm:text-sm">
             Himalayan Group Departures
           </p>
@@ -1005,22 +1383,38 @@ Travel Date: ${date || "Not specified"}`;
           </p>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
-            <div className="rounded-[24px] border border-white/10 bg-white/6 p-4">
+            <div className="rounded-[24px] border border-amber-300/10 bg-white/6 p-4">
               <p className="text-[11px] uppercase tracking-[0.24em] text-slate-400">Live Trips</p>
               <p className="mt-2 font-['Sora'] text-3xl font-semibold text-white">{trips.length || 1}</p>
               <p className="mt-1 text-sm text-slate-300">Curated departures currently visible in the app.</p>
             </div>
-            <div className="rounded-[24px] border border-white/10 bg-white/6 p-4">
-              <p className="text-[11px] uppercase tracking-[0.24em] text-slate-400">Upcoming Batches</p>
-              <p className="mt-2 font-['Sora'] text-3xl font-semibold text-white">{featuredBatches || 3}</p>
-              <p className="mt-1 text-sm text-slate-300">Choose from upcoming dates with live seat visibility.</p>
+            <div className="rounded-[24px] border border-teal-400/10 bg-white/6 p-4">
+              <p className="text-[11px] uppercase tracking-[0.24em] text-slate-400">WhatsApp Booking</p>
+              <p className="mt-2 font-['Sora'] text-3xl font-semibold text-white">1 Tap</p>
+              <p className="mt-1 text-sm text-slate-300">Share your details once and finalize the rest directly with our team.</p>
             </div>
-            <div className="rounded-[24px] border border-white/10 bg-white/6 p-4">
+            <div className="rounded-[24px] border border-amber-300/10 bg-white/6 p-4">
               <p className="text-[11px] uppercase tracking-[0.24em] text-slate-400">Traveler Love</p>
               <p className="mt-2 font-['Sora'] text-3xl font-semibold text-white">{reviews.length}+</p>
               <p className="mt-1 text-sm text-slate-300">Positive stories that reinforce the booking confidence.</p>
             </div>
           </div>
+        </div>
+
+        <FeaturedSpotlight
+          trip={featuredTrip}
+          onViewTrip={() => featuredTrip && navigate(`/trip/${featuredTrip._id}`)}
+        />
+
+        <div className="mb-8 sm:mb-10">
+          <p className="section-kicker mb-3 text-[11px]">Browse Departures</p>
+          <h2 className="section-title text-3xl font-semibold text-white sm:text-4xl">
+            Explore the trips that are live right now
+          </h2>
+          <p className="mt-4 max-w-3xl text-base leading-8 text-slate-300">
+            Compare route style, duration, and pricing in one place, then open the trip
+            that feels right for your kind of travel.
+          </p>
         </div>
 
         <SearchFilters
@@ -1055,25 +1449,44 @@ Travel Date: ${date || "Not specified"}`;
         )}
 
         {!loading && !error && filteredTrips.length > 0 && (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 sm:gap-8">
-            {filteredTrips.map((trip, index) => (
-              <div
-                key={trip._id}
-                className="animate-fadeInUp"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <TripCard
-                  trip={trip}
-                  onClick={() => navigate(`/trip/${trip._id}`)}
-                  isWishlisted={isTripWishlisted(wishlist, trip)}
-                  onToggleWishlist={onToggleWishlist}
-                />
+          <div>
+            <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.24em] text-slate-400">
+                  Live Trip Cards
+                </p>
+                <h3 className="mt-2 font-['Sora'] text-2xl font-semibold text-white">
+                  Current departures
+                </h3>
               </div>
-            ))}
+              <p className="text-sm text-slate-300">
+                Showing {filteredTrips.length} {filteredTrips.length === 1 ? "trip" : "trips"}
+              </p>
+            </div>
+
+            <div id="trips-list" className="grid gap-6 scroll-mt-28 sm:grid-cols-2 lg:grid-cols-3 sm:gap-8">
+              {filteredTrips.map((trip, index) => (
+                <div
+                  key={trip._id}
+                  className="animate-fadeInUp"
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
+                  <TripCard
+                    trip={trip}
+                    onClick={() => navigate(`/trip/${trip._id}`)}
+                    isWishlisted={isTripWishlisted(wishlist, trip)}
+                    onToggleWishlist={onToggleWishlist}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </section>
 
+      <BookingFlowSection />
+      <BrandStorySection />
+      <TrustAndFAQSection faqs={homeFaqs} metrics={trustMetrics} />
       <WhyUs />
       <Reviews reviews={reviews} />
       {showPopup && (
@@ -1117,7 +1530,7 @@ Travel Date: ${date || "Not specified"}`;
       />
 
       {/* BUTTONS */}
-      <div className="mt-5 flex gap-3">
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row">
 
         <button
           onClick={handlePlanTrip}
@@ -1143,12 +1556,83 @@ Travel Date: ${date || "Not specified"}`;
   );
 }
 
-function FAQSection({ faqs }) {
+function TrustAndFAQSection({ faqs, metrics }) {
+  return (
+    <section className="pb-24 text-white">
+      <div className="mx-auto max-w-7xl px-6">
+        <div className="mb-8">
+          <p className="section-kicker mb-3 text-[11px]">Trust And Clarity</p>
+          <h2 className="section-title text-3xl font-semibold text-white sm:text-4xl">
+            The quick proof travelers usually look for before they message us
+          </h2>
+          <p className="mt-4 max-w-3xl text-base leading-8 text-slate-300">
+            Strong travel sites do not rely only on visuals. They also make it easy to
+            trust the process, understand the flow, and get answers fast.
+          </p>
+        </div>
+
+        <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
+        <div className="glass-card rounded-[32px] p-6 sm:p-8">
+          <p className="section-kicker mb-4 text-[11px]">Trust Signals</p>
+          <h2 className="section-title text-3xl font-semibold text-white">
+            Enough proof to make the next click easier
+          </h2>
+          <p className="mt-5 text-base leading-8 text-slate-300">
+            Even with a focused set of departures, the site should still answer the
+            questions travelers have before they reach out. These quick numbers help frame
+            the quality and clarity behind the journeys.
+          </p>
+
+          <div className="mt-8 grid gap-4 sm:grid-cols-2">
+            {metrics.map((metric) => (
+              <div
+                key={metric.label}
+                className="rounded-[24px] border border-white/10 bg-white/6 p-5"
+              >
+                <p className="text-[11px] uppercase tracking-[0.24em] text-slate-400">
+                  {metric.label}
+                </p>
+                <p className="mt-3 font-['Sora'] text-3xl font-semibold text-white">
+                  {metric.value}
+                </p>
+                <p className="mt-2 text-sm leading-7 text-slate-300">
+                  {metric.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <FAQSection
+          faqs={faqs}
+          title="Questions travelers usually ask before booking"
+          description="Clear answers upfront make the WhatsApp conversation shorter, easier, and more reassuring."
+          className="glass-card rounded-[32px] p-6 sm:p-8"
+          titleClassName="font-['Sora'] text-3xl font-semibold text-white"
+        />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FAQSection({
+  faqs,
+  title = "Frequently Asked Questions",
+  description = "",
+  className = "mt-10 rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md",
+  titleClassName = "text-2xl font-bold text-orange-400",
+}) {
   const [openIndex, setOpenIndex] = useState(0);
 
   return (
-    <section className="mt-10 rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md">
-      <h2 className="mb-6 text-2xl font-bold text-orange-400">Frequently Asked Questions</h2>
+    <section className={className}>
+      <h2 className={`mb-4 ${titleClassName}`}>{title}</h2>
+      {description && (
+        <p className="mb-6 max-w-2xl text-base leading-8 text-slate-300">
+          {description}
+        </p>
+      )}
 
       <div className="space-y-4">
         {faqs.map((faq, index) => {
@@ -1197,7 +1681,6 @@ function TripDetail({ wishlist, onToggleWishlist }) {
   const [roomType, setRoomType] = useState("Double Sharing");
   const [specialRequest, setSpecialRequest] = useState("");
   const [activeSection, setActiveSection] = useState("overview");
-  const [selectedBatch, setSelectedBatch] = useState("");
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -1218,8 +1701,9 @@ function TripDetail({ wishlist, onToggleWishlist }) {
         const finalTrip = selectedTrip || trips[0];
         const batches = getBatchDates(finalTrip);
         if (batches.length > 0) {
-          setSelectedBatch(batches[0].date);
           setTravelDate(batches[0].date);
+        } else {
+          setTravelDate("");
         }
       })
       .catch((err) => {
@@ -1231,9 +1715,6 @@ function TripDetail({ wishlist, onToggleWishlist }) {
 
   const meta = getTripMeta(trip || {});
   const faqs = getTripFAQs(trip || {});
-  const batchDates = getBatchDates(trip || {});
-  const selectedBatchInfo =
-    batchDates.find((batch) => batch.date === selectedBatch) || batchDates[0];
   const packageGuide = getPackageGuide(selectedPackage);
   const overview = buildFallbackOverview(trip || {}, selectedPackage, packageGuide);
   const highlights = buildFallbackHighlights(trip || {}, selectedPackage, packageGuide);
@@ -1308,62 +1789,73 @@ return (
                   </p>
 
                   <h1 className="font-['Sora'] text-4xl font-semibold text-white md:text-5xl">{trip.title}</h1>
-                  <div className="mt-6">
-  <h2 className="font-['Sora'] text-xl font-semibold text-orange-200 mb-4">
-    Available Packages
-  </h2>
+                  {trip?.packages?.length > 1 && (
+                    <div className="mt-6">
+                      <h2 className="mb-4 font-['Sora'] text-xl font-semibold text-orange-200">
+                        Available Packages
+                      </h2>
 
-  <div className="grid gap-4 sm:grid-cols-2">
-    {trip?.packages?.length > 0 &&
-      trip.packages.map((pkg, index) => {
-        return (
-          <div
-            key={index}
-            className={`rounded-2xl border p-5 transition duration-300 ${
-              selectedPackage?.name === pkg.name
-                ? "border-orange-300/40 bg-orange-400/10 scale-[1.02] shadow-[0_18px_40px_rgba(249,115,22,0.16)]"
-                : "border-white/10 bg-black/20 hover:border-white/20 hover:bg-black/28"
-            }`}
-          >
-            <h3 className="font-['Sora'] text-lg font-semibold text-white">{pkg.name}</h3>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        {trip.packages.map((pkg, index) => {
+                          return (
+                            <div
+                              key={index}
+                              className={`rounded-2xl border p-5 transition duration-300 ${
+                                selectedPackage?.name === pkg.name
+                                  ? "border-orange-300/40 bg-orange-400/10 scale-[1.02] shadow-[0_18px_40px_rgba(249,115,22,0.16)]"
+                                  : "border-white/10 bg-black/20 hover:border-white/20 hover:bg-black/28"
+                              }`}
+                            >
+                              <h3 className="font-['Sora'] text-lg font-semibold text-white">{pkg.name}</h3>
 
-            <p className="mt-3 text-2xl font-semibold text-orange-300">
-              {"\u20B9"}{pkg.price}
-            </p>
+                              <p className="mt-3 text-2xl font-semibold text-orange-300">
+                                {"\u20B9"}{pkg.price}
+                              </p>
 
-            <p className="mt-1 text-slate-400">
-              {pkg.duration || "Duration not specified"}
-            </p>
+                              <p className="mt-1 text-slate-400">
+                                {pkg.duration || "Duration not specified"}
+                              </p>
 
-            <button
-              onClick={() => setSelectedPackage(pkg)}
-              className={`mt-4 w-full rounded-xl py-2.5 font-semibold transition ${
-                selectedPackage?.name === pkg.name
-                  ? "bg-orange-500 text-white"
-                  : "bg-white/8 text-white hover:bg-white/14"
-              }`}
-            >
-              {selectedPackage?.name === pkg.name ? "Selected \u2713" : "Select Package"}
-            </button>
+                              <button
+                                onClick={() => setSelectedPackage(pkg)}
+                                className={`mt-4 w-full rounded-xl py-2.5 font-semibold transition ${
+                                  selectedPackage?.name === pkg.name
+                                    ? "bg-orange-500 text-white"
+                                    : "bg-white/8 text-white hover:bg-white/14"
+                                }`}
+                              >
+                                {selectedPackage?.name === pkg.name ? "Selected \u2713" : "Select Package"}
+                              </button>
 
-            <a
-              href={`http://localhost:5000/${pkg.pdf}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-2 block w-full rounded-xl border border-white/10 bg-white/5 py-2.5 text-center font-medium text-slate-100 transition hover:bg-white/10"
-            >
-              View Itinerary
-            </a>
-          </div>
-        );
-      })}
-  </div> {/* Close package grid */}
-
-</div> {/* Close package section */}
+                              <a
+                                href={getPdfHref(pkg.pdf)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="mt-2 block w-full rounded-xl border border-white/10 bg-white/5 py-2.5 text-center font-medium text-slate-100 transition hover:bg-white/10"
+                              >
+                                View Itinerary
+                              </a>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
                   <p className="mt-4 text-2xl font-semibold text-orange-300">
                     {"\u20B9"}{selectedPackage?.price || trip.price}
                   </p>
+
+                  {trip?.packages?.length === 1 && selectedPackage?.pdf && (
+                    <a
+                      href={getPdfHref(selectedPackage.pdf)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-4 inline-flex rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-slate-100 transition hover:bg-white/10"
+                    >
+                      View Itinerary
+                    </a>
+                  )}
 
                   <p className="mt-6 leading-8 text-slate-300">
                     {trip.description ||
@@ -1455,7 +1947,7 @@ return (
                           {highlights.map((item, index) => (
                             <div
                               key={`${item}-${index}`}
-                              className="rounded-xl border border-sky-500/20 bg-sky-500/10 p-4 text-gray-200"
+                              className="rounded-xl border border-teal-400/20 bg-teal-500/10 p-4 text-gray-200"
                             >
                               {item}
                             </div>
@@ -1554,33 +2046,13 @@ return (
                 </div>
 
                 <div className="md:col-span-1">
-                  <div className="glass-card sticky top-28 rounded-[28px] p-6">
+                    <div className="glass-card rounded-[28px] p-6 md:sticky md:top-28">
                     <h2 className="mb-2 font-['Sora'] text-xl font-semibold text-white">
                       Book This Trip
                     </h2>
                     <p className="mb-4 text-sm leading-6 text-slate-300">
-                      Finalize your batch, traveler count, and room preference. We will take the booking forward on WhatsApp.
+                      Share your preferred travel date, traveler count, and room preference. We will take the booking forward on WhatsApp.
                     </p>
-
-                    <p className="mb-4 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-200">
-                      {"\u26A0"} {selectedBatchInfo?.slots || 0} slots left in selected batch
-                    </p>
-
-                    <label className="mb-2 block text-sm text-gray-300">Select batch date</label>
-                    <select
-                      value={selectedBatch}
-                      onChange={(e) => {
-                        setSelectedBatch(e.target.value);
-                        setTravelDate(e.target.value);
-                      }}
-                      className="mb-4 w-full rounded-2xl border border-white/10 bg-black/30 p-3 text-white outline-none focus:border-orange-300"
-                    >
-                      {batchDates.map((batch, index) => (
-                        <option key={index} value={batch.date}>
-                          {batch.date} - {batch.slots} slots left
-                        </option>
-                      ))}
-                    </select>
 
                     <label className="mb-2 block text-sm text-gray-300">Travel date</label>
                     <input
@@ -1690,7 +2162,7 @@ function Footer() {
           </h3>
           <p className="text-slate-300 leading-7">
             The Meraki Tribe creates group trips that feel planned by travelers, not
-            by a generic booking engine. We focus on real routes, comfortable batch
+            by a generic booking engine. We focus on real routes, comfortable travel
             coordination, and the kind of on-ground support that helps solo travelers,
             couples, and small groups enjoy the journey without worrying about every
             transfer, stay, and schedule.
@@ -1727,24 +2199,24 @@ function Footer() {
           </h3>
           <ul className="space-y-3 text-slate-300">
             <li>
-              <a href="#footer-about" className="transition hover:text-orange-300">
+              <Link to="/#footer-about" className="transition hover:text-orange-300">
                 About Us
-              </a>
+              </Link>
             </li>
             <li>
-              <a href="#trips" className="transition hover:text-orange-300">
+              <Link to="/#trips-list" className="transition hover:text-orange-300">
                 Trips
-              </a>
+              </Link>
             </li>
             <li>
-              <a href="#reviews" className="transition hover:text-orange-300">
+              <Link to="/#reviews" className="transition hover:text-orange-300">
                 Reviews
-              </a>
+              </Link>
             </li>
             <li>
-              <a href="#contact" className="transition hover:text-orange-300">
+              <Link to="/#contact" className="transition hover:text-orange-300">
                 Contact Us
-              </a>
+              </Link>
             </li>
             <li className="flex items-center gap-2">
               <FaInstagram className="text-pink-500" />
@@ -1830,7 +2302,7 @@ function Footer() {
         </div>
       </div>
 
-      <div className="border-t border-white/10 bg-black/40 px-6 py-6 text-sm text-slate-300">
+      <div className="border-t border-white/10 bg-gradient-to-r from-black/60 via-black/30 to-black/60 px-6 py-6 text-sm text-slate-300">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 md:flex-row">
           <p>The Meraki Tribe. All Rights Reserved.</p>
           <div className="flex flex-wrap gap-3">
@@ -1872,6 +2344,49 @@ function FloatingWhatsApp() {
   );
 }
 
+function ScrollManager() {
+  const { pathname, hash } = useLocation();
+
+  useEffect(() => {
+    let timeoutId;
+
+    const scrollToHashTarget = () => {
+      if (!hash) return false;
+
+      const target = document.getElementById(hash.slice(1));
+      if (!target) return false;
+
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+      return true;
+    };
+
+    const frameId = window.requestAnimationFrame(() => {
+      if (hash) {
+        const foundTarget = scrollToHashTarget();
+
+        if (!foundTarget) {
+          timeoutId = window.setTimeout(() => {
+            if (!scrollToHashTarget()) {
+              window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+            }
+          }, 300);
+        }
+
+        return;
+      }
+
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      if (timeoutId) window.clearTimeout(timeoutId);
+    };
+  }, [pathname, hash]);
+
+  return null;
+}
+
 function App() {
   const [wishlist, setWishlist] = useState(() => {
     if (typeof window === "undefined") return [];
@@ -1907,16 +2422,19 @@ function App() {
   };
 
   return (
-    <Routes>
-      <Route
-        path="/"
-        element={<Home wishlist={wishlist} onToggleWishlist={handleToggleWishlist} />}
-      />
-      <Route
-        path="/trip/:id"
-        element={<TripDetail wishlist={wishlist} onToggleWishlist={handleToggleWishlist} />}
-      />
-    </Routes>
+    <>
+      <ScrollManager />
+      <Routes>
+        <Route
+          path="/"
+          element={<Home wishlist={wishlist} onToggleWishlist={handleToggleWishlist} />}
+        />
+        <Route
+          path="/trip/:id"
+          element={<TripDetail wishlist={wishlist} onToggleWishlist={handleToggleWishlist} />}
+        />
+      </Routes>
+    </>
   );
 }
 
