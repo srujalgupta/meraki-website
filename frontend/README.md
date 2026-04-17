@@ -1,16 +1,37 @@
-# React + Vite
+# Meraki Tribe Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + Vite frontend for The Meraki Tribe travel site.
 
-Currently, two official plugins are available:
+## Requirements
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Node.js 18 or newer
 
-## React Compiler
+## Environment
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Create `frontend/.env` if you need a custom backend URL.
 
-## Expanding the ESLint configuration
+```env
+VITE_API_URL=https://your-api-domain.com
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+If `VITE_API_URL` is not set:
+
+- development uses `http://localhost:5000`
+- production uses the current site origin
+
+## Commands
+
+```bash
+npm install
+npm run dev
+npm run lint
+npm run build
+npm run preview
+```
+
+## Deployment Notes
+
+- Netlify-style SPA fallback is provided via `public/_redirects`
+- Vercel rewrite fallback is provided via `vercel.json`
+- Set `VITE_API_URL` when frontend and backend are hosted on different domains
+- If frontend and backend share the same domain, the production default works without `VITE_API_URL`

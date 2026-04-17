@@ -28,10 +28,23 @@ import {
   FaTimes,
   FaLinkedinIn,
   FaYoutube,
+  FaGoogle,
 } from "react-icons/fa";
-import API, { loadTripById, loadTrips } from "./api";
+import {
+  loadBusinessReviews,
+  loadTripById,
+  loadTrips,
+  resolveApiAssetUrl,
+} from "./api";
+import fallbackTrips from "./fallbackTrips";
 
 const WHATSAPP_NUMBER = "919662351358";
+const GOOGLE_MAPS_SHARE_URL = "https://maps.app.goo.gl/FmbfyeuF7EhTaccW9?g_st=iwb";
+const GOOGLE_MAPS_EMBED_URL =
+  "https://www.google.com/maps?q=The%20Meraki%20Tribe%2C%20Raj%20Nagar%20Extension%2C%20Ghaziabad%2C%20Uttar%20Pradesh%20201301&z=15&output=embed";
+const REVIEW_REFRESH_INTERVAL_MS = 30 * 1000;
+const CONTACT_FIELD_LIMIT = 280;
+const LONG_MESSAGE_LIMIT = 1200;
 
 const destinationMeta = {
   kumbhalgarhJawai: {
@@ -48,6 +61,67 @@ const destinationMeta = {
     weather: "Pleasant destination weather with seasonal changes based on travel dates.",
   },
 };
+
+const SPITI_COVER_IMAGE = "/spiti/_P2A6720.jpg";
+const KUMBHALGARH_COVER_IMAGE = "/kumbhalgarh-jawai/kumbhalgarh-cover.jpg";
+const HERO_COVER_IMAGE = SPITI_COVER_IMAGE;
+
+const SPITI_MEMORIES = [
+  "/spiti/IMG_0023.jpg",
+  "/spiti/_P2A0521.jpg",
+  "/spiti/_P2A5693.jpg",
+  "/spiti/DSC09680.jpg",
+  "/spiti/DSC09849.jpg",
+  "/spiti/IMG_0022.jpg",
+  "/spiti/_P2A1747.jpg",
+  "/spiti/_P2A1626.jpg",
+  "/spiti/IMG_3932.jpg",
+  "/spiti/IMG_4118.jpg",
+  "/spiti/IMG_4123.jpg",
+  "/spiti/IMG_4148.jpg",
+  "/spiti/IMG_7526.jpg",
+  "/spiti/IMG_8064.jpg",
+  "/spiti/DSC09658.jpg",
+  "/spiti/_P2A0347.jpg",
+  "/spiti/_P2A0501.jpg",
+  "/spiti/_P2A1251.jpg",
+  "/spiti/_P2A1272.jpg",
+  "/spiti/_P2A1322.jpg",
+  "/spiti/_P2A1408.jpg",
+  "/spiti/_P2A1440.jpg",
+  "/spiti/_P2A1449.jpg",
+  "/spiti/_P2A1508.jpg",
+  "/spiti/_P2A1613.jpg",
+  "/spiti/_P2A1725.jpg",
+  "/spiti/_P2A5779.jpg",
+  "/spiti/_P2A6472.jpg",
+  "/spiti/_P2A6720.jpg",
+  "/spiti/_P2A6730.jpg",
+  "/spiti/_P2A6838.jpg",
+  "/spiti/_P2A9961.jpg",
+];
+
+const KUMBHALGARH_MEMORIES = [
+  "/kumbhalgarh-jawai/kumbhalgarh-cover.jpg",
+  "/kumbhalgarh-jawai/_P2A7134.jpg",
+  "/kumbhalgarh-jawai/_P2A7161.jpg",
+  "/kumbhalgarh-jawai/_P2A7171.jpg",
+  "/kumbhalgarh-jawai/_P2A7172.jpg",
+  "/kumbhalgarh-jawai/_P2A7173.jpg",
+  "/kumbhalgarh-jawai/_P2A7186.jpg",
+  "/kumbhalgarh-jawai/_P2A7187.jpg",
+  "/kumbhalgarh-jawai/_P2A7398.jpg",
+  "/kumbhalgarh-jawai/_P2A7401.jpg",
+  "/kumbhalgarh-jawai/_P2A7409.jpg",
+  "/kumbhalgarh-jawai/_P2A7410.jpg",
+  "/kumbhalgarh-jawai/_P2A7432.jpg",
+  "/kumbhalgarh-jawai/_P2A7433.jpg",
+  "/kumbhalgarh-jawai/_P2A7434.jpg",
+  "/kumbhalgarh-jawai/_P2A7440.jpg",
+  "/kumbhalgarh-jawai/_P2A7441.jpg",
+  "/kumbhalgarh-jawai/_P2A7442.jpg",
+  "/kumbhalgarh-jawai/_P2A7443.jpg",
+];
 
 const fallbackReviews = [
   {
@@ -261,7 +335,64 @@ const getTripFAQs = (trip) => {
   return defaultFAQs;
 };
 
+const getTripCoverImage = (trip) => {
+  const combined = `${trip?.title || ""} ${trip?.location || ""} ${trip?.category || ""}`.toLowerCase();
+
+  if (combined.includes("spiti")) {
+    return SPITI_COVER_IMAGE;
+  }
+
+  if (combined.includes("kumbhalgarh") || combined.includes("jawai")) {
+    return KUMBHALGARH_COVER_IMAGE;
+  }
+
+  if (trip?.image) {
+    return trip.image;
+  }
+
+  const fallbackTrip = fallbackTrips.find((item) => {
+    const fallbackCombined = `${item?.title || ""} ${item?.location || ""} ${item?.category || ""}`.toLowerCase();
+    return (
+      getTripId(item) === getTripId(trip) ||
+      item?.title === trip?.title ||
+      fallbackCombined.includes(combined) ||
+      combined.includes(fallbackCombined)
+    );
+  });
+
+  return fallbackTrip?.image || getTripGallery(trip)[0] || HERO_COVER_IMAGE;
+};
+
+const getTripGallery = (trip) => {
+  if (Array.isArray(trip?.gallery) && trip.gallery.length) {
+    return trip.gallery;
+  }
+
+  const combined = `${trip?.title || ""} ${trip?.location || ""} ${trip?.category || ""}`.toLowerCase();
+
+  if (combined.includes("spiti")) {
+    return SPITI_MEMORIES;
+  }
+
+  if (combined.includes("kumbhalgarh") || combined.includes("jawai")) {
+    return KUMBHALGARH_MEMORIES;
+  }
+
+  const fallbackTrip = fallbackTrips.find((item) => {
+    const fallbackCombined = `${item?.title || ""} ${item?.location || ""} ${item?.category || ""}`.toLowerCase();
+    return (
+      getTripId(item) === getTripId(trip) ||
+      item?.title === trip?.title ||
+      fallbackCombined.includes(combined) ||
+      combined.includes(fallbackCombined)
+    );
+  });
+
+  return Array.isArray(fallbackTrip?.gallery) ? fallbackTrip.gallery : [];
+};
+
 const WISHLIST_STORAGE_KEY = "merakiWishlist";
+const GALLERY_PREVIEW_COUNT = 5;
 
 const getTripId = (trip) => trip?._id || trip?.id || trip?.title || null;
 
@@ -595,8 +726,35 @@ const getPackageGuide = (selectedPackage) => {
 
 const getPdfHref = (pdfPath) => {
   if (!pdfPath) return "#";
-  const normalizedPdfPath = pdfPath.replace(/^\/+/, "");
-  return `${API}/${encodeURI(normalizedPdfPath)}`;
+  return resolveApiAssetUrl(pdfPath);
+};
+
+const normalizeShortText = (value, fallback = "Not specified") => {
+  const normalized = value?.toString().replace(/\s+/g, " ").trim().slice(0, CONTACT_FIELD_LIMIT);
+  return normalized || fallback;
+};
+
+const normalizeLongText = (value, fallback = "None") => {
+  const normalized = value?.toString().replace(/\r\n/g, "\n").trim().slice(0, LONG_MESSAGE_LIMIT);
+  return normalized || fallback;
+};
+
+const normalizeTravelerCount = (value, fallback = 1) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(1, Math.round(parsed));
+};
+
+const openWhatsAppMessage = (lines) => {
+  if (typeof window === "undefined") return;
+
+  const message = lines.filter(Boolean).join("\n");
+  const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+  const popup = window.open(url, "_blank", "noopener,noreferrer");
+
+  if (popup) {
+    popup.opener = null;
+  }
 };
 
 const getDurationLabel = (trip, selectedPackage) =>
@@ -737,42 +895,60 @@ const openWhatsAppBooking = (
   specialRequest = "None",
   selectedPackage = null
 ) => {
-  const unitPrice = selectedPackage?.price || trip?.price || 0;
-  const totalPrice = unitPrice * people;
+  const normalizedPeople = normalizeTravelerCount(people);
+  const unitPrice = Number(selectedPackage?.price || trip?.price || 0);
+  const totalPrice = unitPrice * normalizedPeople;
   const packageLine = selectedPackage?.name
-    ? `Package: ${selectedPackage.name}`
+    ? `Package: ${normalizeShortText(selectedPackage.name)}`
     : null;
-  const bookingMessage = [
+  openWhatsAppMessage([
     "Hello, I want to book this trip:",
-    `Trip: ${trip.title}`,
+    `Trip: ${normalizeShortText(trip?.title, "Selected trip")}`,
     packageLine,
-    `Location: ${trip.location || "N/A"}`,
-    `Date: ${travelDate}`,
-    `People: ${people}`,
-    `Pickup City: ${pickupCity}`,
-    `Room Type: ${roomType}`,
-    `Special Request: ${specialRequest}`,
+    `Location: ${normalizeShortText(trip?.location, "N/A")}`,
+    `Date: ${normalizeShortText(travelDate)}`,
+    `People: ${normalizedPeople}`,
+    `Pickup City: ${normalizeShortText(pickupCity)}`,
+    `Room Type: ${normalizeShortText(roomType)}`,
+    `Special Request: ${normalizeLongText(specialRequest)}`,
     `Total Price: \u20B9${totalPrice}`,
     "Please share details.",
-  ]
-    .filter(Boolean)
-    .join("\n");
-
-
-  const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(bookingMessage)}`;
-  window.open(url, "_blank", "noopener,noreferrer");
+  ]);
 };
 
 function LiveBackground() {
   const videoRef = useRef(null);
+  const [isVideoReady, setIsVideoReady] = useState(false);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
+    video.defaultMuted = true;
+    video.muted = true;
+    video.loop = true;
+    video.playsInline = true;
+    video.preload = "auto";
+    video.playbackRate = 0.95;
+    video.setAttribute("autoplay", "");
+    video.setAttribute("muted", "");
+    video.setAttribute("playsinline", "");
+    video.setAttribute("webkit-playsinline", "");
+
     const ensurePlayback = () => {
+      if (document.hidden) return;
+
+      if (video.ended) {
+        video.currentTime = 0;
+      }
+
       const playAttempt = video.play();
       if (playAttempt?.catch) playAttempt.catch(() => {});
+    };
+
+    const handleLoadedData = () => {
+      setIsVideoReady(true);
+      ensurePlayback();
     };
 
     const restartPlayback = () => {
@@ -781,17 +957,43 @@ function LiveBackground() {
     };
 
     const handleVisibilityChange = () => {
+      if (document.hidden) {
+        video.pause();
+        return;
+      }
+
+      ensurePlayback();
+    };
+
+    const handlePause = () => {
       if (!document.hidden) ensurePlayback();
     };
 
+    const retryIntervalId = window.setInterval(() => {
+      if (!document.hidden && video.paused && video.readyState >= 2) {
+        ensurePlayback();
+      }
+    }, 2000);
+
     ensurePlayback();
 
+    video.addEventListener("loadeddata", handleLoadedData);
+    video.addEventListener("canplay", ensurePlayback);
+    video.addEventListener("waiting", ensurePlayback);
+    video.addEventListener("pause", handlePause);
+    video.addEventListener("emptied", ensurePlayback);
     video.addEventListener("stalled", ensurePlayback);
     video.addEventListener("suspend", ensurePlayback);
     video.addEventListener("ended", restartPlayback);
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
+      window.clearInterval(retryIntervalId);
+      video.removeEventListener("loadeddata", handleLoadedData);
+      video.removeEventListener("canplay", ensurePlayback);
+      video.removeEventListener("waiting", ensurePlayback);
+      video.removeEventListener("pause", handlePause);
+      video.removeEventListener("emptied", ensurePlayback);
       video.removeEventListener("stalled", ensurePlayback);
       video.removeEventListener("suspend", ensurePlayback);
       video.removeEventListener("ended", restartPlayback);
@@ -801,6 +1003,10 @@ function LiveBackground() {
 
   return (
     <div className="fixed inset-0 z-0 overflow-hidden">
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${HERO_COVER_IMAGE})` }}
+      />
       <video
         ref={videoRef}
         autoPlay
@@ -809,7 +1015,10 @@ function LiveBackground() {
         playsInline
         preload="auto"
         disablePictureInPicture
-        className="video-smooth absolute top-0 left-0 h-full w-full object-cover"
+        poster={HERO_COVER_IMAGE}
+        className={`video-smooth absolute top-0 left-0 h-full w-full object-cover transition-opacity duration-700 ${
+          isVideoReady ? "opacity-100" : "opacity-0"
+        }`}
       >
         <source src="/hero.mp4" type="video/mp4" />
       </video>
@@ -826,9 +1035,21 @@ function Navbar({ wishlistCount = 0 }) {
     setIsMenuOpen(false);
   }, [location.pathname, location.hash]);
 
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = isMenuOpen ? "hidden" : previousOverflow;
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isMenuOpen]);
+
   return (
-    <header className="fixed top-0 left-0 z-50 w-full border-b border-white/10 bg-black/55 backdrop-blur-xl animate-fadeInSoft">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 text-white sm:px-6">
+    <header
+      className="fixed top-0 left-0 z-50 w-full border-b border-white/10 bg-black/55 backdrop-blur-xl animate-fadeInSoft"
+      style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+    >
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 text-white sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
           <button
             type="button"
@@ -836,6 +1057,7 @@ function Navbar({ wishlistCount = 0 }) {
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/8 text-white transition duration-300 hover:border-orange-300/30 hover:bg-white/12"
             aria-label={isMenuOpen ? "Close menu" : "Open menu"}
             aria-expanded={isMenuOpen}
+            aria-controls="mobile-nav-panel"
           >
             {isMenuOpen ? <FaTimes className="text-base" /> : <FaBars className="text-base" />}
           </button>
@@ -887,28 +1109,73 @@ function Navbar({ wishlistCount = 0 }) {
             rel="noopener noreferrer"
             className="animate-pulseSoft flex min-h-[44px] items-center gap-2 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-[0_14px_34px_rgba(34,197,94,0.28)] transition duration-300 hover:scale-105 hover:from-green-400 hover:to-emerald-400"
           >
-            Book Now
+            Chat on WhatsApp
           </a>
         </div>
 
         {isMenuOpen && (
-          <div className="glass-card absolute left-4 top-full z-[55] mt-3 w-[min(15rem,calc(100vw-2rem))] rounded-[22px] border border-white/10 bg-black/90 p-3 shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
-            <div className="flex flex-col gap-2">
-              <Link
-                to="/customize-tours"
-                className="flex min-h-[42px] items-center rounded-xl border border-white/10 bg-white/8 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white transition hover:border-orange-300/30 hover:bg-white/12"
-              >
-                Customize Tours
-              </Link>
+          <>
+            <button
+              type="button"
+              aria-label="Close menu overlay"
+              onClick={() => setIsMenuOpen(false)}
+              className="fixed inset-0 top-[calc(4.5rem+env(safe-area-inset-top,0px))] z-40 bg-black/55 lg:hidden"
+            />
 
-              <Link
-                to="/contact-us"
-                className="flex min-h-[42px] items-center rounded-xl border border-white/10 bg-white/8 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white transition hover:border-orange-300/30 hover:bg-white/12"
-              >
-                Contact Us
-              </Link>
+            <div
+              id="mobile-nav-panel"
+              className="glass-card fixed inset-x-4 top-[calc(4.75rem+env(safe-area-inset-top,0px))] z-[55] rounded-[24px] border border-white/10 bg-black/90 p-3 shadow-[0_24px_80px_rgba(0,0,0,0.45)] lg:hidden"
+            >
+              <div className="flex flex-col gap-2">
+                <Link
+                  to="/"
+                  className="flex min-h-[44px] items-center rounded-xl border border-white/10 bg-white/8 px-4 py-3 text-sm font-semibold text-white transition hover:border-orange-300/30 hover:bg-white/12"
+                >
+                  Home
+                </Link>
+
+                <Link
+                  to="/#trips-list"
+                  className="flex min-h-[44px] items-center rounded-xl border border-white/10 bg-white/8 px-4 py-3 text-sm font-semibold text-white transition hover:border-orange-300/30 hover:bg-white/12"
+                >
+                  Trips
+                </Link>
+
+                <div className="flex min-h-[44px] items-center justify-between rounded-xl border border-white/10 bg-white/8 px-4 py-3 text-sm font-semibold text-white">
+                  <span className="flex items-center gap-2">
+                    <FaHeart className="text-orange-300" />
+                    Wishlist
+                  </span>
+                  <span className="rounded-full bg-orange-300/15 px-2 py-0.5 text-xs font-semibold text-orange-200">
+                    {wishlistCount}
+                  </span>
+                </div>
+
+                <Link
+                  to="/customize-tours"
+                  className="flex min-h-[44px] items-center rounded-xl border border-white/10 bg-white/8 px-4 py-3 text-sm font-semibold text-white transition hover:border-orange-300/30 hover:bg-white/12"
+                >
+                  Customize Tours
+                </Link>
+
+                <Link
+                  to="/contact-us"
+                  className="flex min-h-[44px] items-center rounded-xl border border-white/10 bg-white/8 px-4 py-3 text-sm font-semibold text-white transition hover:border-orange-300/30 hover:bg-white/12"
+                >
+                  Contact Us
+                </Link>
+
+                <a
+                  href="https://wa.me/919662351358"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 flex min-h-[46px] items-center justify-center rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 px-4 py-3 text-sm font-semibold text-white shadow-[0_14px_34px_rgba(34,197,94,0.28)] transition hover:from-green-400 hover:to-emerald-400"
+                >
+                  Chat on WhatsApp
+                </a>
+              </div>
             </div>
-          </div>
+          </>
         )}
       </div>
     </header>
@@ -918,52 +1185,54 @@ function Navbar({ wishlistCount = 0 }) {
 function WhyUs() {
   const features = [
     {
-      title: "SAFETY FIRST",
-      desc: "We prioritize your safety with special measures for solo and female travelers, ensuring a secure and comfortable journey from start to finish.",
+      title: "CLEAR TRIP COORDINATION",
+      desc: "Before departure, we share the route flow, stay plan, reporting details, and what to expect so travelers are not left guessing.",
       icon: "\uD83D\uDEE1\uFE0F",
     },
     {
-      title: "ECO-FRIENDLY COMMITMENT",
-      desc: "Our tree-planting initiative neutralizes your carbon footprint, promoting responsible travel and making a positive impact on the environment.",
+      title: "REAL ROUTES, NOT FILLER COPY",
+      desc: "We would rather show a few trips properly than list many routes with vague details. The website is built around actual departures we are handling.",
       icon: "\uD83C\uDF31",
     },
     {
-      title: "COMMUNITY OF EXPLORERS",
-      desc: "Join like-minded travelers who share your passion for adventure. Our curated group trips foster connections and create lasting friendships.",
+      title: "GROUPS THAT FEEL COMFORTABLE",
+      desc: "A lot of our travelers join solo. We focus on making the group dynamic easy, welcoming, and well-managed once the trip begins.",
       icon: "\uD83E\uDD1D",
     },
     {
-      title: "SEAMLESS, PASSIONATE SERVICE",
-      desc: "We handle all trip details to ensure a smooth experience, driven by our love for travel and a commitment to making your journey memorable.",
+      title: "DIRECT SUPPORT ON WHATSAPP",
+      desc: "Questions about pickup, rooms, payments, or route flow are handled directly with our team instead of being buried inside a long form.",
       icon: "\u2764\uFE0F",
     },
   ];
 
   return (
-    <section id="about" className="relative z-10 bg-transparent pt-32 pb-20 text-white">
-      <div className="mx-auto max-w-7xl px-6">
-        <p className="section-kicker mb-4 text-center text-xs">Why Travel With Us</p>
-        <h2 className="section-title mx-auto mb-5 max-w-4xl text-center text-4xl font-semibold text-white md:text-6xl">
+    <section id="about" className="relative z-10 bg-transparent pb-16 pt-20 text-white sm:pb-20 sm:pt-24 lg:pt-32">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <p className="section-kicker mb-4 bg-gradient-to-r from-amber-300 via-orange-300 to-yellow-200 bg-clip-text text-center text-xs text-transparent">
+          Why Travel With Us
+        </p>
+        <h2 className="section-title mx-auto mb-5 max-w-4xl bg-gradient-to-r from-orange-300 via-amber-200 to-yellow-100 bg-clip-text text-center text-3xl font-semibold text-transparent sm:text-4xl md:text-5xl lg:text-6xl">
           Why The Meraki Tribe Stands Out
         </h2>
-        <p className="mx-auto mb-16 max-w-3xl text-center text-base leading-8 text-slate-300 md:text-lg">
-          We blend route planning, community, and dependable execution so the trip
-          feels polished from the first message to the final drop.
+        <p className="mx-auto mb-10 max-w-3xl bg-gradient-to-r from-orange-100 via-amber-100 to-yellow-100 bg-clip-text text-center text-base leading-8 text-transparent sm:mb-12 md:text-lg lg:mb-16">
+          We focus on clear trip details, honest communication, and group departures
+          that feel looked after from the first message to the return journey.
         </p>
 
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-4 lg:gap-8">
           {features.map((feature, index) => (
             <article
               key={index}
-              className="glass-card group min-h-[360px] overflow-hidden rounded-[28px] p-8 text-white transition-all duration-700 hover:-translate-y-3 hover:border-orange-300/30 hover:shadow-[0_30px_80px_rgba(0,0,0,0.34)]"
+              className="glass-card group overflow-hidden rounded-[28px] p-5 text-white transition-all duration-700 hover:-translate-y-3 hover:border-orange-300/30 hover:shadow-[0_30px_80px_rgba(0,0,0,0.34)] sm:p-6 lg:min-h-[320px] lg:p-7"
             >
-              <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-3xl border border-white/10 bg-white/8 text-3xl shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-all duration-500 group-hover:scale-110 group-hover:border-orange-300/40 group-hover:bg-orange-400/12">
+              <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-3xl border border-white/10 bg-white/8 text-2xl shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-all duration-500 group-hover:scale-110 group-hover:border-orange-300/40 group-hover:bg-orange-400/12 sm:mb-6 sm:h-20 sm:w-20 sm:text-3xl">
                 {feature.icon}
               </div>
-              <h3 className="mb-4 font-['Sora'] text-2xl font-semibold leading-tight tracking-tight text-white group-hover:text-orange-200">
+              <h3 className="mb-3 font-['Sora'] text-xl font-semibold leading-tight tracking-tight text-white group-hover:text-orange-200 sm:mb-4 sm:text-2xl">
                 {feature.title}
               </h3>
-              <p className="text-base leading-8 text-slate-300 group-hover:text-slate-100">
+              <p className="text-sm leading-7 text-slate-300 group-hover:text-slate-100 sm:text-base sm:leading-8">
                 {feature.desc}
               </p>
             </article>
@@ -974,12 +1243,23 @@ function WhyUs() {
   );
 }
 
-function Reviews({ reviews }) {
-  const duplicatedReviews = [...reviews, ...reviews];
+function Reviews({ reviews, onRefresh, isRefreshing, lastUpdatedAt, usingFallback }) {
+  const [isPaused, setIsPaused] = useState(false);
+  const reviewTrackRef = useRef(null);
+  const duplicatedReviews = reviews.length > 1 ? [...reviews, ...reviews] : reviews;
+
+  if (!reviews.length) return null;
+
+  const refreshedLabel = lastUpdatedAt
+    ? new Intl.DateTimeFormat("en-IN", {
+        hour: "numeric",
+        minute: "2-digit",
+      }).format(lastUpdatedAt)
+    : "";
 
   return (
-    <section id="reviews" className="py-24 text-white">
-      <div className="mx-auto max-w-7xl px-6">
+    <section id="reviews" className="py-20 text-white sm:py-24">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <p className="section-kicker mb-4 text-center text-xs">Social Proof</p>
         <h2 className="section-title mb-4 text-center text-4xl font-semibold text-white">
           Traveler Reviews
@@ -989,41 +1269,99 @@ function Reviews({ reviews }) {
           remember after the trip.
         </p>
 
-        <div className="overflow-hidden">
-          <div className="flex w-max animate-marquee gap-6">
+        <div className="mb-8 flex flex-col items-center justify-center gap-3 text-center sm:mb-10 sm:flex-row sm:flex-wrap">
+          <p className="text-xs leading-6 text-slate-400 sm:text-sm">
+            {usingFallback
+              ? "Showing bundled review cards right now because live Google reviews are unavailable."
+              : refreshedLabel
+              ? `Live Google reviews • Last updated at ${refreshedLabel}`
+              : "Live Google reviews are loading."}
+          </p>
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={isRefreshing}
+            className="rounded-full border border-white/10 bg-white/6 px-4 py-2 text-sm font-semibold text-white transition hover:border-orange-300/30 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isRefreshing ? "Refreshing..." : "Refresh Reviews"}
+          </button>
+        </div>
+
+        <div
+          ref={reviewTrackRef}
+          className="premium-scroll overflow-x-auto pb-2 sm:overflow-hidden"
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
+          onFocusCapture={() => setIsPaused(true)}
+          onBlurCapture={(event) => {
+            if (!reviewTrackRef.current?.contains(event.relatedTarget)) {
+              setIsPaused(false);
+            }
+          }}
+        >
+          <div
+            className={`flex w-max snap-x snap-mandatory gap-4 sm:gap-6 sm:snap-none ${
+              reviews.length > 1 ? "animate-marquee" : ""
+            } ${isPaused ? "paused" : ""}`.trim()}
+          >
             {duplicatedReviews.map((review, index) => (
-              <div
-                key={`${review.id}-${index}`}
-                className="glass-card w-[290px] shrink-0 rounded-[28px] border border-amber-200/10 p-6 sm:w-[340px]"
-              >
-                <div className="mb-4 flex items-center gap-4">
-                  <img
-                    src={review.image}
-                    alt={review.name}
-                    className="h-14 w-14 rounded-2xl border border-white/10 object-cover"
-                  />
-                  <div>
-                    <h3 className="text-lg font-semibold text-white">{review.name}</h3>
-                    <p className="text-sm text-slate-400">
-                      {review.place} {"\u2022"} {review.month}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mb-3 flex items-center gap-1 text-orange-400">
-                  {Array.from({ length: review.rating }).map((_, i) => (
-                    <FaStar key={i} />
-                  ))}
-                </div>
-
-                <p className="leading-7 text-slate-200">{"\u201C"}{review.text}{"\u201D"}</p>
-                <h3 className="mt-5 font-['Sora'] text-lg font-semibold text-white">{review.tripName}</h3>
-              </div>
+              <ReviewCard key={`${review.id}-${index}`} review={review} />
             ))}
           </div>
         </div>
       </div>
     </section>
+  );
+}
+
+function ReviewCard({ review }) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const initials = review.name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || "")
+    .join("");
+
+  return (
+    <article className="glass-card flex min-h-[280px] w-[84vw] max-w-[280px] shrink-0 snap-start flex-col rounded-[28px] border border-amber-200/10 p-5 sm:min-h-[320px] sm:w-[320px] sm:max-w-[320px] sm:p-6">
+      <div className="mb-4 flex items-center gap-3">
+        {imageFailed || !review.image ? (
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-gradient-to-br from-orange-400/25 to-teal-400/20 text-sm font-semibold tracking-[0.2em] text-white">
+            {initials || "GT"}
+          </div>
+        ) : (
+          <img
+            src={review.image}
+            alt={review.name}
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            onError={() => setImageFailed(true)}
+            className="h-12 w-12 shrink-0 rounded-2xl border border-white/10 object-cover"
+          />
+        )}
+        <div className="min-w-0">
+          <h3 className="truncate text-base font-semibold text-white">{review.name}</h3>
+          <p className="truncate text-xs text-slate-400">
+            {review.place} {"\u2022"} {review.month}
+          </p>
+        </div>
+      </div>
+
+      <div className="mb-3 flex items-center gap-1 text-sm text-orange-400">
+        {Array.from({ length: review.rating }).map((_, i) => (
+          <FaStar key={i} />
+        ))}
+      </div>
+
+      <p className="review-text-clamp text-sm leading-7 text-slate-200">
+        {"\u201C"}{review.text}{"\u201D"}
+      </p>
+
+      <div className="mt-auto pt-5">
+        <h3 className="font-['Sora'] text-base font-semibold text-white">{review.tripName}</h3>
+      </div>
+    </article>
   );
 }
 
@@ -1034,32 +1372,33 @@ function FeaturedSpotlight({ trip, onViewTrip }) {
   const packageGuide = getPackageGuide(selectedPackage);
   const overview = buildFallbackOverview(trip, selectedPackage, packageGuide);
   const highlights = buildFallbackHighlights(trip, selectedPackage, packageGuide).slice(0, 4);
+  const tripCoverImage = getTripCoverImage(trip);
 
   return (
     <section className="mb-12 sm:mb-16">
       <div className="mb-8">
         <p className="section-kicker mb-3 text-[11px]">Featured Departure</p>
         <h2 className="section-title text-3xl font-semibold text-white sm:text-4xl">
-          The trip we would put in front of every first-time traveler
+          One route you can understand properly before you book
         </h2>
         <p className="mt-4 max-w-3xl text-base leading-8 text-slate-300">
-          A closer look at one live route with the clearest mix of place, planning,
-          and traveler appeal.
+          This section highlights a real departure with its route, duration, package,
+          and core details up front so the decision feels simpler.
         </p>
       </div>
 
       <div className="glass-card overflow-hidden rounded-[34px]">
         <div className="grid gap-0 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="relative min-h-[340px] overflow-hidden">
+          <div className="relative min-h-[260px] overflow-hidden sm:min-h-[320px] lg:min-h-[340px]">
             <img
-              src={trip.image}
+              src={tripCoverImage}
               alt={trip.title}
               className="h-full w-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
             <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
               <p className="mb-3 text-[11px] uppercase tracking-[0.28em] text-orange-200/80">
-                Featured Experience
+                Current Departure
               </p>
               <h2 className="font-['Sora'] text-3xl font-semibold text-white sm:text-4xl">
                 {trip.title}
@@ -1075,8 +1414,8 @@ function FeaturedSpotlight({ trip, onViewTrip }) {
             </div>
           </div>
 
-          <div className="p-6 sm:p-8">
-            <p className="section-kicker mb-4 text-[11px]">Spotlight Route</p>
+          <div className="p-5 sm:p-6 lg:p-8">
+            <p className="section-kicker mb-4 text-[11px]">Route Summary</p>
             <p className="text-base leading-8 text-slate-300">
               {overview}
             </p>
@@ -1092,7 +1431,7 @@ function FeaturedSpotlight({ trip, onViewTrip }) {
               ))}
             </div>
 
-            <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-[24px] border border-orange-300/15 bg-orange-400/10 p-4">
+            <div className="mt-6 flex flex-col gap-4 rounded-[24px] border border-orange-300/15 bg-orange-400/10 p-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
               <div>
                 <p className="text-[11px] uppercase tracking-[0.24em] text-slate-400">
                   Starting From
@@ -1102,19 +1441,19 @@ function FeaturedSpotlight({ trip, onViewTrip }) {
                 </p>
               </div>
 
-              <div className="flex flex-wrap gap-3">
+              <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap">
                 <button
                   onClick={onViewTrip}
-                  className="rounded-2xl border border-white/10 bg-white/8 px-5 py-3 font-semibold text-white transition hover:bg-white/12"
+                  className="rounded-2xl border border-white/10 bg-white/8 px-5 py-3 font-semibold text-white transition hover:bg-white/12 sm:px-5"
                 >
-                  Explore Trip
+                  View Trip Details
                 </button>
 
                 <button
                   onClick={() => openWhatsAppBooking(trip, 1, "Not selected", "Not selected", "Double Sharing", "Interested in this featured trip", selectedPackage)}
-                  className="rounded-2xl bg-gradient-to-r from-green-500 to-emerald-500 px-5 py-3 font-semibold text-white transition hover:from-green-400 hover:to-emerald-400"
+                  className="rounded-2xl bg-gradient-to-r from-green-500 to-emerald-500 px-5 py-3 font-semibold text-white transition hover:from-green-400 hover:to-emerald-400 sm:px-5"
                 >
-                  Book on WhatsApp
+                  Ask on WhatsApp
                 </button>
               </div>
             </div>
@@ -1129,49 +1468,49 @@ function BookingFlowSection() {
   const steps = [
     {
       number: "01",
-      title: "Discover the right route",
+      title: "Check the trip details",
       description:
-        "Start with the live departures, compare duration and budget, and open the trip that matches your kind of travel.",
+        "Open the trip page, compare the package options, and go through the route, duration, and inclusions before deciding.",
     },
     {
       number: "02",
-      title: "Share your preferences on WhatsApp",
+      title: "Message us on WhatsApp",
       description:
-        "Tell us your city, dates, room style, and any questions. We keep the booking flow direct and human instead of hiding it behind forms.",
+        "Send your city, date, and room preference. If you have questions about pickup, stays, or payments, we answer them there directly.",
     },
     {
       number: "03",
-      title: "Confirm and travel with clarity",
+      title: "Confirm your seat",
       description:
-        "Once the route and package are locked, we share the next details clearly so the trip feels sorted before departure day.",
+        "Once everything is clear, we confirm the booking and share the next trip details so you know what happens before departure.",
     },
   ];
 
   return (
-    <section className="py-24 text-white">
-      <div className="mx-auto max-w-7xl px-6">
+    <section className="py-20 text-white sm:py-24">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <p className="section-kicker mb-4 text-center text-xs">How It Works</p>
-        <h2 className="section-title mx-auto max-w-4xl text-center text-4xl font-semibold text-white md:text-5xl">
-          A booking flow that feels personal, not robotic
+        <h2 className="section-title mx-auto max-w-4xl text-center text-3xl font-semibold text-white sm:text-4xl md:text-5xl">
+          How booking works here
         </h2>
         <p className="mx-auto mt-5 max-w-3xl text-center text-base leading-8 text-slate-300">
-          We keep the digital experience clean, then move the real planning to WhatsApp
-          where travelers can ask what they actually care about before committing.
+          The website helps you understand the trip first. The actual confirmation
+          then happens with our team on WhatsApp, where details can be discussed properly.
         </p>
 
-        <div className="mt-12 grid gap-6 lg:grid-cols-3">
+        <div className="mt-10 grid gap-5 sm:mt-12 sm:gap-6 lg:grid-cols-3">
           {steps.map((step) => (
             <article
               key={step.number}
-              className="glass-card rounded-[28px] p-6 transition duration-500 hover:-translate-y-2 hover:border-orange-300/25"
+              className="glass-card rounded-[28px] p-5 transition duration-500 hover:-translate-y-2 hover:border-orange-300/25 sm:p-6"
             >
               <p className="mb-5 font-['Sora'] text-4xl font-semibold text-orange-300/85">
                 {step.number}
               </p>
-              <h3 className="font-['Sora'] text-2xl font-semibold text-white">
+              <h3 className="font-['Sora'] text-xl font-semibold text-white sm:text-2xl">
                 {step.title}
               </h3>
-              <p className="mt-4 text-base leading-8 text-slate-300">
+              <p className="mt-4 text-sm leading-7 text-slate-300 sm:text-base sm:leading-8">
                 {step.description}
               </p>
             </article>
@@ -1184,40 +1523,40 @@ function BookingFlowSection() {
 
 function BrandStorySection() {
   const brandPoints = [
-    "Trips shaped around route quality, not just low prices.",
-    "A planning style that stays human from the first message onward.",
-    "Smaller, more intentional departures that feel cared for.",
-    "Travel pages built from real routes, PDFs, and actual destination context.",
+    "Trip pages are based on actual routes, package details, and itinerary PDFs.",
+    "We keep the booking conversation direct on WhatsApp so questions get answered faster.",
+    "We prefer a smaller set of active departures instead of posting routes we are not ready to run.",
+    "The goal is simple: clearer planning before the trip and smoother coordination during it.",
   ];
 
   return (
-    <section className="pb-24 text-white">
-      <div className="mx-auto max-w-7xl px-6">
+    <section className="pb-20 text-white sm:pb-24">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="mb-8">
           <p className="section-kicker mb-3 text-[11px]">Brand Story</p>
           <h2 className="section-title text-3xl font-semibold text-white sm:text-4xl">
-            What makes the brand feel more intentional than a generic travel listing
+            What The Meraki Tribe is trying to do differently
           </h2>
           <p className="mt-4 max-w-3xl text-base leading-8 text-slate-300">
-            The site should not only show trips. It should also explain how The Meraki
-            Tribe thinks about routes, communication, and traveler experience.
+            We want the website to feel useful before it feels promotional, which means
+            showing real trip information and keeping communication straightforward.
           </p>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
-        <div className="glass-card rounded-[32px] p-7 sm:p-8">
+        <div className="grid gap-6 sm:gap-8 lg:grid-cols-[1.05fr_0.95fr]">
+        <div className="glass-card rounded-[32px] p-6 sm:p-8">
           <p className="section-kicker mb-4 text-[11px]">About The Brand</p>
           <h2 className="section-title text-3xl font-semibold text-white sm:text-4xl">
-            The Meraki Tribe is built for travelers who want a trip to feel considered
+            We are building this for travelers who want clearer trip planning
           </h2>
           <p className="mt-5 text-base leading-8 text-slate-300">
-            We are not trying to flood the site with random departures. The idea is to
-            keep the routes selective, make the pages more honest, and create enough
-            confidence that a traveler can say yes without feeling like they are guessing.
+            We are not trying to fill the site with too many routes. We would rather
+            show a smaller set of trips with proper package details, useful media, and
+            a clearer sense of what the journey actually looks like.
           </p>
           <p className="mt-4 text-base leading-8 text-slate-300">
-            That means clearer itineraries, tighter communication, better route curation,
-            and a more grounded booking experience than generic travel listing sites.
+            That is why the site keeps pointing travelers toward route details, PDFs,
+            and direct WhatsApp support instead of long booking funnels with very little clarity.
           </p>
         </div>
 
@@ -1234,6 +1573,93 @@ function BrandStorySection() {
             </div>
           ))}
         </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PostcardsSection({ entries }) {
+  if (!entries.length) {
+    return null;
+  }
+
+  const [activeOffset, setActiveOffset] = useState(0);
+  const [transitionTick, setTransitionTick] = useState(0);
+
+  useEffect(() => {
+    if (entries.length <= 5) {
+      return undefined;
+    }
+
+    const rotationIntervalId = window.setInterval(() => {
+      setActiveOffset((currentOffset) => (currentOffset + 1) % entries.length);
+      setTransitionTick((currentTick) => currentTick + 1);
+    }, 4000);
+
+    return () => {
+      window.clearInterval(rotationIntervalId);
+    };
+  }, [entries.length]);
+
+  const visibleEntries = useMemo(() => {
+    const visibleCount = Math.min(5, entries.length);
+
+    return Array.from({ length: visibleCount }, (_, index) => {
+      const entryIndex = (activeOffset + index) % entries.length;
+      return entries[entryIndex];
+    });
+  }, [activeOffset, entries]);
+
+  const cardLayouts = [
+    "lg:col-span-3 lg:row-span-4 lg:-rotate-[2deg]",
+    "lg:col-span-4 lg:row-span-3 lg:rotate-[1deg]",
+    "lg:col-span-5 lg:row-span-4 lg:rotate-[1.4deg]",
+    "lg:col-span-4 lg:row-span-3 lg:-rotate-[1.1deg]",
+    "lg:col-span-4 lg:row-span-3 lg:rotate-[1.8deg]",
+  ];
+
+  return (
+    <section className="pb-24 text-white">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="relative overflow-hidden rounded-[30px] border border-orange-200/10 bg-[radial-gradient(circle_at_top,rgba(251,191,36,0.14),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(45,212,191,0.14),transparent_24%),linear-gradient(160deg,rgba(8,10,18,0.96),rgba(18,24,36,0.94)_58%,rgba(43,24,16,0.96))] p-4 shadow-[0_30px_90px_rgba(0,0,0,0.34)] sm:p-6 lg:rounded-[34px] lg:p-10">
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-56 bg-[linear-gradient(180deg,rgba(6,9,16,0.96),rgba(6,9,16,0.82)_48%,rgba(6,9,16,0.28)_82%,transparent)] sm:h-72 lg:h-[26rem]" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-20 px-4 pt-8 text-center sm:px-8 sm:pt-14 lg:px-10 lg:pt-16">
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.42em] text-yellow-300 sm:text-[11px]">
+              Meraki Memories
+            </p>
+            <h2 className="mx-auto inline-block max-w-4xl border-b border-yellow-300/80 pb-3 font-['Sora'] text-[1.7rem] font-extrabold leading-[1] text-yellow-300 [text-shadow:0_10px_24px_rgba(0,0,0,0.55)] sm:text-[3rem] md:text-[3.6rem] lg:text-[4.1rem]">
+              Why Travelers
+              <span className="block">Keep Coming Back</span>
+            </h2>
+            <p className="mx-auto mt-3 max-w-xl text-[13px] leading-6 text-yellow-100/90 sm:mt-5 sm:max-w-2xl sm:text-[15px] sm:leading-7 lg:max-w-[44rem] lg:text-[17px] lg:leading-8">
+              Real frames from the road, the group energy, and the kind of shared moments
+              that turn one trip into the start of the next one.
+            </p>
+          </div>
+
+          <div className="grid gap-3 pt-44 md:grid-cols-2 md:gap-4 md:pt-52 lg:auto-rows-[52px] lg:grid-cols-12 lg:gap-5 lg:pt-[21rem]">
+            {visibleEntries.map((entry, index) => (
+              <div
+                key={`${entry.id}-${transitionTick}-${index}`}
+                className={`group relative min-h-[9.25rem] transition duration-700 sm:min-h-[12rem] ${cardLayouts[index] || "lg:col-span-4 lg:row-span-3"}`}
+              >
+                <div className="animate-fadeInSoft relative h-full overflow-hidden rounded-[20px] border border-[#f9db79]/50 bg-[linear-gradient(180deg,#f8ebc4,#e6c977)] p-1.5 shadow-[0_18px_36px_rgba(0,0,0,0.28)] transition duration-700 group-hover:-translate-y-1.5 group-hover:shadow-[0_24px_48px_rgba(0,0,0,0.34)]">
+                  <div className="relative h-full overflow-hidden rounded-[15px] border border-black/12 bg-white/70 p-1">
+                    <div className="relative h-full overflow-hidden rounded-[11px] bg-slate-950">
+                      <img
+                        src={entry.image}
+                        alt={`${entry.title} memory`}
+                        loading="lazy"
+                        className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(3,7,18,0.06),rgba(3,7,18,0.16)_42%,rgba(3,7,18,0.36)_100%)]" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>
@@ -1323,12 +1749,13 @@ function SearchFilters({
 function TripCard({ trip, onClick, isWishlisted, onToggleWishlist }) {
   const meta = getTripMeta(trip);
   const tripDuration = trip?.duration || trip?.packages?.[0]?.duration || "Curated trip";
+  const tripCoverImage = getTripCoverImage(trip);
 
   return (
     <article className="touch-card glass-card group flex h-full flex-col overflow-hidden rounded-[32px] transition duration-500 hover:-translate-y-3 hover:border-orange-300/25 hover:shadow-[0_30px_90px_rgba(0,0,0,0.42)]">
       <div className="relative cursor-pointer overflow-hidden" onClick={onClick}>
         <img
-          src={trip.image}
+          src={tripCoverImage}
           alt={trip.title}
           className="h-56 w-full object-cover transition duration-700 group-hover:scale-110 sm:h-64"
         />
@@ -1400,7 +1827,7 @@ function TripCard({ trip, onClick, isWishlisted, onToggleWishlist }) {
             className="flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-500 px-4 py-3 font-semibold text-white shadow-[0_12px_28px_rgba(34,197,94,0.2)] transition duration-300 hover:from-green-400 hover:to-emerald-400 active:scale-[0.98]"
           >
             <FaWhatsapp />
-            Book Trip
+            Ask on WhatsApp
           </button>
         </div>
       </div>
@@ -1420,21 +1847,19 @@ function Home({ wishlist, onToggleWishlist }) {
   setShowPopup(false);
 };
   const handlePlanTrip = () => {
-  const message = `Hello, I want to plan a trip:
-
-Destination: ${destination || "Not specified"}
-Budget: ${budget || "Not specified"}
-Travel Date: ${date || "Not specified"}`;
-
-  window.open(
-    `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`,
-    "_blank",
-    "noopener,noreferrer"
-  );
+  openWhatsAppMessage([
+    "Hello, I want to plan a trip:",
+    `Destination: ${normalizeShortText(destination)}`,
+    `Budget: ${normalizeShortText(budget)}`,
+    `Travel Date: ${normalizeShortText(date)}`,
+  ]);
 
   handleClosePopup();
 };
-  const [reviews] = useState(fallbackReviews);
+  const [reviews, setReviews] = useState([]);
+  const [isRefreshingReviews, setIsRefreshingReviews] = useState(false);
+  const [lastReviewsUpdatedAt, setLastReviewsUpdatedAt] = useState(null);
+  const [usingFallbackReviews, setUsingFallbackReviews] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -1442,6 +1867,33 @@ Travel Date: ${date || "Not specified"}`;
   const [sortBy, setSortBy] = useState("default");
   const [maxPrice, setMaxPrice] = useState("");
   const navigate = useNavigate();
+  const reviewsRefreshLockRef = useRef(false);
+  const isMountedRef = useRef(true);
+
+  const refreshReviews = async () => {
+    if (reviewsRefreshLockRef.current) return;
+
+    reviewsRefreshLockRef.current = true;
+    if (isMountedRef.current) {
+      setIsRefreshingReviews(true);
+    }
+
+    try {
+      const { reviews: loadedReviews, usingFallback } = await loadBusinessReviews();
+
+      if (!isMountedRef.current) return;
+
+      setReviews(loadedReviews.length ? loadedReviews : fallbackReviews);
+      setUsingFallbackReviews(usingFallback || !loadedReviews.length);
+      setLastReviewsUpdatedAt(new Date());
+    } finally {
+      reviewsRefreshLockRef.current = false;
+
+      if (isMountedRef.current) {
+        setIsRefreshingReviews(false);
+      }
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -1464,6 +1916,41 @@ Travel Date: ${date || "Not specified"}`;
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    refreshReviews();
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        refreshReviews();
+      }
+    };
+
+    const refreshIntervalId = window.setInterval(() => {
+      if (!document.hidden) {
+        refreshReviews();
+      }
+    }, REVIEW_REFRESH_INTERVAL_MS);
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      isMountedRef.current = false;
+      window.clearInterval(refreshIntervalId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = showPopup ? "hidden" : previousOverflow;
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [showPopup]);
 
   const locations = useMemo(() => {
     return [...new Set(trips.map((trip) => trip.location).filter(Boolean))];
@@ -1504,6 +1991,16 @@ Travel Date: ${date || "Not specified"}`;
   const featuredTrip = useMemo(() => {
     return filteredTrips.find((trip) => trip.trending) || filteredTrips[0] || trips[0] || null;
   }, [filteredTrips, trips]);
+
+  const postcards = useMemo(() => {
+    return SPITI_MEMORIES.map((image, imageIndex) => ({
+      id: `spiti-memory-${imageIndex}`,
+      title: "Spiti Valley Adventure",
+      location: "Himachal Pradesh",
+      duration: "Mountain memories",
+      image,
+    }));
+  }, []);
 
   const trustMetrics = useMemo(() => {
     const totalPackages = trips.reduce(
@@ -1582,40 +2079,39 @@ Travel Date: ${date || "Not specified"}`;
       <LiveBackground />
       <Navbar wishlistCount={wishlist.length} />
 
-      <section id="trips" className="mx-auto max-w-7xl px-6 pb-12 pt-28">
-        <div className="noise-overlay brand-sheen mb-12 rounded-[36px] border border-white/10 bg-[linear-gradient(180deg,rgba(8,11,18,0.5),rgba(8,11,18,0.24))] px-6 py-8 shadow-[0_30px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl animate-fadeInUp sm:mb-16 sm:px-8 sm:py-10">
+      <section id="trips" className="mx-auto max-w-7xl px-4 pb-12 pt-20 sm:px-6 sm:pt-24 lg:pt-28">
+        <div className="noise-overlay brand-sheen mb-12 rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(8,11,18,0.5),rgba(8,11,18,0.24))] px-5 py-7 shadow-[0_30px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl animate-fadeInUp sm:mb-16 sm:rounded-[36px] sm:px-8 sm:py-10">
           <p className="section-kicker mb-4 text-[11px] sm:text-sm">
             Himalayan Group Departures
           </p>
 
-          <h1 className="hero-title text-4xl font-extrabold leading-[1.05] text-white sm:text-5xl md:text-7xl">
-            <span className="inline-block font-['Sora'] animate-floatSoft">Travel with stories,</span>
+          <h1 className="hero-title text-[2.15rem] font-extrabold leading-[1.02] text-white sm:text-5xl md:text-6xl lg:text-7xl">
+            <span className="inline-block font-['Sora'] animate-floatSoft">Real group trips,</span>
             <span className="block font-['Sora'] text-orange-200 animate-floatSoft">
-              not just itineraries.
+              planned with clarity.
             </span>
           </h1>
 
-          <p className="hero-subtitle mt-5 max-w-3xl text-base leading-8 text-slate-200 sm:mt-6 sm:text-lg md:text-xl">
-            Discover Spiti departures that feel premium in planning, calm in execution,
-            and memorable for the right reasons. Explore the route, choose your package,
-            and lock your seat directly on WhatsApp.
+          <p className="hero-subtitle mt-5 max-w-3xl text-[15px] leading-7 text-slate-200 sm:mt-6 sm:text-lg sm:leading-8 md:text-xl">
+            Explore active departures, compare package options, check itinerary details,
+            and speak to our team directly on WhatsApp before you book.
           </p>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
             <div className="rounded-[24px] border border-amber-300/10 bg-white/6 p-4">
               <p className="text-[11px] uppercase tracking-[0.24em] text-slate-400">Live Trips</p>
               <p className="mt-2 font-['Sora'] text-3xl font-semibold text-white">{trips.length || 1}</p>
-              <p className="mt-1 text-sm text-slate-300">Curated departures currently visible in the app.</p>
+              <p className="mt-1 text-sm text-slate-300">Trips currently active on the website.</p>
             </div>
             <div className="rounded-[24px] border border-teal-400/10 bg-white/6 p-4">
               <p className="text-[11px] uppercase tracking-[0.24em] text-slate-400">WhatsApp Booking</p>
               <p className="mt-2 font-['Sora'] text-3xl font-semibold text-white">1 Tap</p>
-              <p className="mt-1 text-sm text-slate-300">Share your details once and finalize the rest directly with our team.</p>
+              <p className="mt-1 text-sm text-slate-300">Talk to our team directly for trip questions and booking.</p>
             </div>
             <div className="rounded-[24px] border border-amber-300/10 bg-white/6 p-4">
-              <p className="text-[11px] uppercase tracking-[0.24em] text-slate-400">Traveler Love</p>
+              <p className="text-[11px] uppercase tracking-[0.24em] text-slate-400">Reviews</p>
               <p className="mt-2 font-['Sora'] text-3xl font-semibold text-white">{reviews.length}+</p>
-              <p className="mt-1 text-sm text-slate-300">Positive stories that reinforce the booking confidence.</p>
+              <p className="mt-1 text-sm text-slate-300">Reviews and shared experiences from past travelers.</p>
             </div>
           </div>
         </div>
@@ -1628,11 +2124,11 @@ Travel Date: ${date || "Not specified"}`;
         <div className="mb-8 sm:mb-10">
           <p className="section-kicker mb-3 text-[11px]">Browse Departures</p>
           <h2 className="section-title text-3xl font-semibold text-white sm:text-4xl">
-            Explore the trips that are live right now
+            Trips you can explore right now
           </h2>
           <p className="mt-4 max-w-3xl text-base leading-8 text-slate-300">
-            Compare route style, duration, and pricing in one place, then open the trip
-            that feels right for your kind of travel.
+            Compare destination, duration, and pricing, then open the trip page for
+            the full route, package options, gallery, and itinerary.
           </p>
         </div>
 
@@ -1705,13 +2201,20 @@ Travel Date: ${date || "Not specified"}`;
 
       <BookingFlowSection />
       <BrandStorySection />
+      <PostcardsSection entries={postcards} />
       <TrustAndFAQSection faqs={homeFaqs} metrics={trustMetrics} />
       <WhyUs />
-      <Reviews reviews={reviews} />
+      <Reviews
+        reviews={reviews}
+        onRefresh={refreshReviews}
+        isRefreshing={isRefreshingReviews}
+        lastUpdatedAt={lastReviewsUpdatedAt}
+        usingFallback={usingFallbackReviews}
+      />
       {showPopup && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md">
+  <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/75 p-4 pt-20 backdrop-blur-md sm:items-center sm:p-6">
 
-    <div className="glass-card w-[90%] max-w-lg rounded-[30px] p-6 text-white sm:p-7">
+    <div className="glass-card modal-scroll-shell w-full max-w-lg rounded-[28px] p-5 text-white sm:rounded-[30px] sm:p-7">
 
       <p className="section-kicker mb-3 text-center text-[11px]">Plan With Our Team</p>
       <h2 className="font-['Sora'] text-2xl font-semibold text-white text-center">
@@ -1778,7 +2281,7 @@ Travel Date: ${date || "Not specified"}`;
 function TrustAndFAQSection({ faqs, metrics }) {
   return (
     <section className="pb-24 text-white">
-      <div className="mx-auto max-w-7xl px-6">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="mb-8">
           <p className="section-kicker mb-3 text-[11px]">Trust And Clarity</p>
           <h2 className="section-title text-3xl font-semibold text-white sm:text-4xl">
@@ -1891,24 +2394,24 @@ function StaticPageLayout({ title, intro, sections }) {
       <LiveBackground />
       <Navbar />
 
-      <section className="mx-auto max-w-5xl px-6 pb-16 pt-28">
-        <div className="glass-card rounded-[34px] p-6 sm:p-8 md:p-10">
+      <section className="mx-auto max-w-5xl px-4 pb-14 pt-20 sm:px-6 sm:pb-16 sm:pt-24 lg:pt-28">
+        <div className="glass-card rounded-[28px] p-5 sm:rounded-[34px] sm:p-8 md:p-10">
           <p className="section-kicker mb-3 text-[11px]">Legal</p>
-          <h1 className="font-['Sora'] text-4xl font-semibold text-white sm:text-5xl">
+          <h1 className="font-['Sora'] text-3xl font-semibold text-white sm:text-4xl lg:text-5xl">
             {title}
           </h1>
-          <p className="mt-5 max-w-3xl text-base leading-8 text-slate-300">{intro}</p>
+          <p className="mt-5 max-w-3xl text-sm leading-7 text-slate-300 sm:text-base sm:leading-8">{intro}</p>
 
-          <div className="mt-10 space-y-6">
+          <div className="mt-8 space-y-5 sm:mt-10 sm:space-y-6">
             {sections.map((section) => (
               <section
                 key={section.title}
-                className="rounded-[28px] border border-white/10 bg-black/20 p-6"
+                className="rounded-[24px] border border-white/10 bg-black/20 p-5 sm:rounded-[28px] sm:p-6"
               >
-                <h2 className="font-['Sora'] text-2xl font-semibold text-orange-200">
+                <h2 className="font-['Sora'] text-xl font-semibold text-orange-200 sm:text-2xl">
                   {section.title}
                 </h2>
-                <ul className="mt-4 space-y-3 text-base leading-8 text-slate-300">
+                <ul className="mt-4 space-y-3 text-sm leading-7 text-slate-300 sm:text-base sm:leading-8">
                   {section.points.map((point, index) => (
                     <li key={`${section.title}-${index}`}>{point}</li>
                   ))}
@@ -1955,6 +2458,49 @@ function RefundPolicyPage() {
   );
 }
 
+function NotFoundPage() {
+  const navigate = useNavigate();
+
+  return (
+    <main className="relative min-h-screen bg-black text-white">
+      <LiveBackground />
+      <Navbar />
+
+      <section className="mx-auto flex min-h-[70vh] max-w-4xl items-center px-4 pb-14 pt-20 sm:px-6 sm:pb-16 sm:pt-24 lg:pt-28">
+        <div className="glass-card w-full rounded-[28px] p-6 text-center sm:rounded-[34px] sm:p-10">
+          <p className="section-kicker mb-4 text-[11px]">Page Missing</p>
+          <h1 className="font-['Sora'] text-3xl font-semibold text-white sm:text-4xl lg:text-5xl">
+            This page is not available
+          </h1>
+          <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-slate-300 sm:text-base sm:leading-8">
+            The link may be outdated, or the page may have moved. You can head back
+            home and continue exploring live trips from there.
+          </p>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <button
+              type="button"
+              onClick={() => navigate("/")}
+              className="rounded-2xl bg-gradient-to-r from-orange-500 to-amber-400 px-6 py-3 font-semibold text-black transition hover:from-orange-400 hover:to-amber-300"
+            >
+              Go To Homepage
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="rounded-2xl border border-white/10 bg-white/6 px-6 py-3 font-semibold text-white transition hover:border-orange-300/30 hover:bg-white/10"
+            >
+              Go Back
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <Footer />
+      <FloatingWhatsApp />
+    </main>
+  );
+}
+
 function CustomizeToursPage() {
   const [destination, setDestination] = useState("");
   const [travelers, setTravelers] = useState("2");
@@ -1963,20 +2509,14 @@ function CustomizeToursPage() {
   const [notes, setNotes] = useState("");
 
   const handleSubmit = () => {
-    const customMessage = [
+    openWhatsAppMessage([
       "Hello, I want to customize a tour with The Meraki Tribe.",
-      `Destination: ${destination || "Not specified"}`,
-      `Travellers: ${travelers || "Not specified"}`,
-      `Month of Travel: ${travelMonth || "Not specified"}`,
-      `Budget: ${budget || "Not specified"}`,
-      `Special Notes: ${notes || "None"}`,
-    ].join("\n");
-
-    window.open(
-      `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(customMessage)}`,
-      "_blank",
-      "noopener,noreferrer"
-    );
+      `Destination: ${normalizeShortText(destination)}`,
+      `Travellers: ${normalizeTravelerCount(travelers, 2)}`,
+      `Month of Travel: ${normalizeShortText(travelMonth)}`,
+      `Budget: ${normalizeShortText(budget)}`,
+      `Special Notes: ${normalizeLongText(notes)}`,
+    ]);
   };
 
   return (
@@ -1984,17 +2524,17 @@ function CustomizeToursPage() {
       <LiveBackground />
       <Navbar />
 
-      <section className="mx-auto max-w-5xl px-6 pb-16 pt-28">
-        <div className="glass-card rounded-[34px] p-6 sm:p-8 md:p-10">
+      <section className="mx-auto max-w-5xl px-4 pb-14 pt-20 sm:px-6 sm:pb-16 sm:pt-24 lg:pt-28">
+        <div className="glass-card rounded-[28px] p-5 sm:rounded-[34px] sm:p-8 md:p-10">
           <p className="section-kicker mb-3 text-[11px]">Customize Tours</p>
-          <h1 className="font-['Sora'] text-4xl font-semibold text-white sm:text-5xl">
+          <h1 className="font-['Sora'] text-3xl font-semibold text-white sm:text-4xl lg:text-5xl">
             Plan A Custom Tour
           </h1>
-          <p className="mt-5 max-w-3xl text-base leading-8 text-slate-300">
+          <p className="mt-5 max-w-3xl text-sm leading-7 text-slate-300 sm:text-base sm:leading-8">
             Share your route idea, travel month, group size, and budget. We will continue the conversation on WhatsApp with a more tailored plan.
           </p>
 
-          <div className="mt-10 grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
+          <div className="mt-8 grid gap-6 sm:mt-10 sm:gap-8 lg:grid-cols-[1.05fr_0.95fr]">
             <div className="space-y-4">
               <input
                 type="text"
@@ -2048,23 +2588,23 @@ function CustomizeToursPage() {
             </div>
 
             <div className="space-y-4">
-              <div className="rounded-[28px] border border-white/10 bg-white/6 p-6">
+              <div className="rounded-[24px] border border-white/10 bg-white/6 p-5 sm:rounded-[28px] sm:p-6">
                 <p className="text-[11px] uppercase tracking-[0.22em] text-orange-300/80">
                   Best For
                 </p>
-                <h2 className="mt-3 font-['Sora'] text-2xl font-semibold text-white">
+                <h2 className="mt-3 font-['Sora'] text-xl font-semibold text-white sm:text-2xl">
                   Tailored trips without a rigid template
                 </h2>
-                <p className="mt-4 text-base leading-8 text-slate-300">
+                <p className="mt-4 text-sm leading-7 text-slate-300 sm:text-base sm:leading-8">
                   This is useful when you want a private route, a different travel pace, a special occasion trip, or a departure that does not match the currently listed packages.
                 </p>
               </div>
 
-              <div className="rounded-[28px] border border-white/10 bg-white/6 p-6">
+              <div className="rounded-[24px] border border-white/10 bg-white/6 p-5 sm:rounded-[28px] sm:p-6">
                 <p className="text-[11px] uppercase tracking-[0.22em] text-orange-300/80">
                   What Happens Next
                 </p>
-                <ul className="mt-4 space-y-3 text-base leading-8 text-slate-300">
+                <ul className="mt-4 space-y-3 text-sm leading-7 text-slate-300 sm:text-base sm:leading-8">
                   <li>We review your destination, timing, and budget.</li>
                   <li>We continue the discussion on WhatsApp for faster coordination.</li>
                   <li>We suggest the most suitable route, stay style, and trip structure.</li>
@@ -2088,42 +2628,36 @@ function ContactPage() {
   const [message, setMessage] = useState("");
 
   const handleSubmit = () => {
-    const contactMessage = [
+    openWhatsAppMessage([
       "Hello, I want to get in touch with The Meraki Tribe.",
-      `Name: ${name || "Not specified"}`,
-      `Email: ${email || "Not specified"}`,
-      `Phone: ${phone || "Not specified"}`,
-      `Message: ${message || "Not specified"}`,
-    ].join("\n");
-
-    window.open(
-      `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(contactMessage)}`,
-      "_blank",
-      "noopener,noreferrer"
-    );
+      `Name: ${normalizeShortText(name)}`,
+      `Email: ${normalizeShortText(email)}`,
+      `Phone: ${normalizeShortText(phone)}`,
+      `Message: ${normalizeLongText(message, "Not specified")}`,
+    ]);
   };
 
   return (
-    <main className="relative min-h-screen bg-[#050505] px-4 pb-10 pt-28 text-slate-900 sm:px-6">
+    <main className="relative min-h-screen bg-[#050505] px-4 pb-8 pt-20 text-slate-900 sm:px-6 sm:pb-10 sm:pt-24 lg:pt-28">
       <LiveBackground />
       <Navbar />
 
       <section className="mx-auto max-w-7xl">
-        <div className="overflow-hidden rounded-[34px] border border-orange-300/40 bg-[linear-gradient(135deg,#fff7ef_0%,#ffd6a8_48%,#f97316_100%)] shadow-[0_32px_100px_rgba(0,0,0,0.48)]">
+        <div className="overflow-hidden rounded-[28px] border border-orange-300/40 bg-[linear-gradient(135deg,#fff7ef_0%,#ffd6a8_48%,#f97316_100%)] shadow-[0_32px_100px_rgba(0,0,0,0.48)] sm:rounded-[34px]">
           <div className="grid lg:grid-cols-[1.04fr_0.96fr]">
-            <div className="relative bg-[linear-gradient(180deg,#fffdfb_0%,#fff6ec_100%)] px-8 py-10 sm:px-12 sm:py-12">
+            <div className="relative bg-[linear-gradient(180deg,#fffdfb_0%,#fff6ec_100%)] px-5 py-7 sm:px-8 sm:py-10 lg:px-12 lg:py-12">
               <div className="absolute -bottom-10 right-10 h-32 w-32 rounded-full bg-orange-200/80" />
               <div className="absolute left-0 top-0 h-full w-px bg-orange-200/0 lg:absolute lg:right-0 lg:left-auto lg:w-[1px] lg:bg-orange-300/30" />
-              <h1 className="font-['Sora'] text-4xl font-semibold tracking-tight text-black sm:text-5xl">
+              <h1 className="font-['Sora'] text-[2rem] font-semibold tracking-tight text-black sm:text-[2.75rem] lg:text-5xl">
                 Let&apos;s get in touch
               </h1>
-              <p className="mt-8 max-w-xl text-lg leading-10 text-[#2a2a2a]">
+              <p className="mt-5 max-w-xl text-sm leading-7 text-[#2a2a2a] sm:mt-6 sm:text-base sm:leading-8 lg:mt-8 lg:text-lg lg:leading-10">
                 Thank you for contacting The Meraki Tribe. Whether it&apos;s a vacation,
                 business trip, or adventure, we&apos;re here to help. Please provide your
                 details, and our travel experts will get back to you shortly.
               </p>
 
-              <div className="mt-14 space-y-8 text-[#222]">
+              <div className="mt-8 space-y-5 text-[#222] sm:mt-10 sm:space-y-6 lg:mt-14 lg:space-y-8">
                 <div className="flex items-start gap-4">
                   <span className="mt-1 flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-amber-400 text-xl text-white shadow-[0_10px_24px_rgba(249,115,22,0.28)]">
                     <FaMapMarkerAlt />
@@ -2158,7 +2692,7 @@ function ContactPage() {
                 </div>
               </div>
 
-              <div className="mt-16">
+              <div className="mt-12 sm:mt-16">
                 <p className="text-lg font-medium text-black">Connect with us :</p>
                 <div className="mt-5 flex items-center gap-3">
                   <a
@@ -2192,13 +2726,13 @@ function ContactPage() {
               </div>
             </div>
 
-            <div className="relative overflow-hidden bg-[linear-gradient(150deg,#ffb15b_0%,#fb923c_45%,#ea580c_100%)] px-8 py-10 sm:px-10 sm:py-12">
+            <div className="relative overflow-hidden bg-[linear-gradient(150deg,#ffb15b_0%,#fb923c_45%,#ea580c_100%)] px-5 py-7 sm:px-8 sm:py-10 lg:px-10 lg:py-12">
               <div className="absolute -right-10 top-8 h-28 w-28 rounded-full bg-black/20 blur-[1px]" />
               <div className="absolute bottom-[-2.5rem] left-10 h-36 w-36 rounded-full bg-white/10 blur-[1px]" />
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.22),transparent_42%)]" />
 
-              <div className="relative rounded-[28px] border border-black/15 bg-white/12 p-6 backdrop-blur-[2px] sm:p-7">
-              <h2 className="font-['Sora'] text-3xl font-semibold text-black">
+              <div className="relative rounded-[24px] border border-black/15 bg-white/12 p-5 backdrop-blur-[2px] sm:rounded-[28px] sm:p-7">
+              <h2 className="font-['Sora'] text-2xl font-semibold text-black sm:text-3xl">
                 Contact us
               </h2>
 
@@ -2208,7 +2742,7 @@ function ContactPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Username"
-                  className="w-full rounded-[14px] border-2 border-black/90 bg-white/18 px-5 py-4 text-base text-black outline-none placeholder:text-black/78"
+                  className="w-full rounded-[14px] border-2 border-black/90 bg-white/18 px-4 py-3.5 text-base text-black outline-none placeholder:text-black/78 sm:px-5 sm:py-4"
                 />
 
                 <input
@@ -2216,7 +2750,7 @@ function ContactPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Email"
-                  className="w-full rounded-[14px] border-2 border-black/90 bg-white/18 px-5 py-4 text-base text-black outline-none placeholder:text-black/78"
+                  className="w-full rounded-[14px] border-2 border-black/90 bg-white/18 px-4 py-3.5 text-base text-black outline-none placeholder:text-black/78 sm:px-5 sm:py-4"
                 />
 
                 <input
@@ -2224,7 +2758,7 @@ function ContactPage() {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="Phone"
-                  className="w-full rounded-[14px] border-2 border-black/90 bg-white/18 px-5 py-4 text-base text-black outline-none placeholder:text-black/78"
+                  className="w-full rounded-[14px] border-2 border-black/90 bg-white/18 px-4 py-3.5 text-base text-black outline-none placeholder:text-black/78 sm:px-5 sm:py-4"
                 />
 
                 <textarea
@@ -2232,7 +2766,7 @@ function ContactPage() {
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="Message"
-                  className="w-full rounded-[14px] border-2 border-black/90 bg-white/18 px-5 py-4 text-base text-black outline-none placeholder:text-black/78"
+                  className="w-full rounded-[14px] border-2 border-black/90 bg-white/18 px-4 py-3.5 text-base text-black outline-none placeholder:text-black/78 sm:px-5 sm:py-4"
                 />
 
                 <button
@@ -2261,6 +2795,7 @@ function TripDetail({ wishlist, onToggleWishlist }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
+  const [isGalleryExpanded, setIsGalleryExpanded] = useState(false);
   const [travelDate, setTravelDate] = useState("");
   const [people, setPeople] = useState(1);
   const [pickupCity, setPickupCity] = useState("");
@@ -2292,6 +2827,8 @@ function TripDetail({ wishlist, onToggleWishlist }) {
       setTrip(loadedTrip);
       setSelectedPackage(loadedTrip?.packages?.[0] || null);
       setTravelDate(getBatchDates(loadedTrip)[0]?.date || "");
+      setIsGalleryExpanded(false);
+      setSelectedImage(null);
       setError(errorMessage);
       setLoading(false);
     };
@@ -2312,12 +2849,27 @@ function TripDetail({ wishlist, onToggleWishlist }) {
   const inclusionItems = buildFallbackInclusions(trip || {}, selectedPackage, packageGuide);
   const exclusionItems = buildFallbackExclusions(trip || {}, packageGuide);
   const thingsToPackItems = buildFallbackThingsToPack(trip || {}, packageGuide);
+  const tripCoverImage = getTripCoverImage(trip || {});
+  const galleryImages = getTripGallery(trip || {});
+  const remainingGalleryCount = Math.max(galleryImages.length - GALLERY_PREVIEW_COUNT, 0);
+  const galleryPreviewImages = isGalleryExpanded
+    ? galleryImages
+    : galleryImages.slice(0, Math.min(galleryImages.length, GALLERY_PREVIEW_COUNT));
 
   useEffect(() => {
     if (activeSection === "packing" && !thingsToPackItems.length) {
       setActiveSection("overview");
     }
   }, [activeSection, thingsToPackItems.length]);
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = selectedImage ? "hidden" : previousOverflow;
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [selectedImage]);
 
   const toggleWishlist = () => {
     if (!trip) return;
@@ -2338,7 +2890,7 @@ return (
       <LiveBackground />
       <Navbar wishlistCount={wishlist.length} />
 
-      <section className="mx-auto max-w-6xl px-6 pb-12 pt-28">
+      <section className="mx-auto max-w-6xl px-4 pb-12 pt-20 sm:px-6 sm:pt-24 lg:pt-28">
         <button
           onClick={handleBackNavigation}
           className="mb-6 rounded-lg border border-white/10 bg-white/10 px-4 py-2 transition hover:bg-white/15"
@@ -2356,18 +2908,18 @@ return (
 
         {trip && (
           <div>
-            <article className="glass-card overflow-hidden rounded-[34px]">
+            <article className="glass-card overflow-hidden rounded-[28px] sm:rounded-[34px]">
               <div className="relative">
                 <img
-                  src={trip.image}
+                  src={tripCoverImage}
                   alt={trip.title}
-                  className="h-72 w-full object-cover md:h-[28rem]"
+                  className="h-56 w-full object-cover sm:h-72 md:h-[28rem]"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
                 <button
                   onClick={toggleWishlist}
-                  className="absolute right-6 top-6 flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-black/45 text-xl text-white backdrop-blur-md transition hover:scale-110"
+                  className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-black/45 text-xl text-white backdrop-blur-md transition hover:scale-110 sm:right-6 sm:top-6 sm:h-12 sm:w-12"
                 >
                   {isTripWishlisted(wishlist, trip) ? (
                     <FaHeart className="text-red-500" />
@@ -2376,7 +2928,7 @@ return (
                   )}
                 </button>
 
-                <div className="absolute bottom-0 left-0 right-0 px-6 pb-6 md:px-8 md:pb-8">
+                <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 sm:px-6 sm:pb-6 md:px-8 md:pb-8">
                   <div className="flex flex-wrap gap-3">
                     <span className="rounded-full border border-white/10 bg-black/30 px-4 py-2 text-xs uppercase tracking-[0.24em] text-orange-200 backdrop-blur-md">
                       {trip.location || "Featured destination"}
@@ -2388,13 +2940,13 @@ return (
                 </div>
               </div>
 
-              <div className="grid gap-8 p-6 md:grid-cols-3 md:p-8">
+              <div className="grid gap-6 p-4 sm:p-6 md:grid-cols-3 md:gap-8 md:p-8">
                 <div className="md:col-span-2">
                   <p className="mb-3 text-sm uppercase tracking-[0.3em] text-orange-300/80">
                     {trip.location || "Featured destination"}
                   </p>
 
-                  <h1 className="font-['Sora'] text-4xl font-semibold text-white md:text-5xl">{trip.title}</h1>
+                  <h1 className="font-['Sora'] text-2xl font-semibold text-white sm:text-4xl md:text-5xl">{trip.title}</h1>
                   {trip?.packages?.length > 1 && (
                     <div className="mt-6">
                       <h2 className="mb-4 font-['Sora'] text-xl font-semibold text-orange-200">
@@ -2406,7 +2958,7 @@ return (
                           return (
                             <div
                               key={index}
-                              className={`rounded-2xl border p-5 transition duration-300 ${
+                              className={`rounded-2xl border p-4 transition duration-300 sm:p-5 ${
                                 selectedPackage?.name === pkg.name
                                   ? "border-orange-300/40 bg-orange-400/10 scale-[1.02] shadow-[0_18px_40px_rgba(249,115,22,0.16)]"
                                   : "border-white/10 bg-black/20 hover:border-white/20 hover:bg-black/28"
@@ -2484,10 +3036,10 @@ return (
                     </div>
                   </div>
 
-                  <div className="mt-10 flex flex-wrap gap-3">
+                  <div className="mt-10 flex flex-wrap gap-2.5 sm:gap-3">
                     <button
                       onClick={() => setActiveSection("overview")}
-                      className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
+                      className={`rounded-full px-4 py-2 text-sm font-semibold transition sm:px-5 ${
                         activeSection === "overview"
                           ? "bg-sky-500 text-white"
                           : "border border-white/20 bg-white/10 text-gray-300 hover:bg-white/20"
@@ -2554,7 +3106,7 @@ return (
                     </button>
                   </div>
 
-                  <div className="glass-card mt-8 rounded-[28px] p-6">
+                  <div className="glass-card mt-8 rounded-[24px] p-5 sm:rounded-[28px] sm:p-6">
                     {activeSection === "overview" && (
                       <div>
                         <h2 className="mb-4 text-2xl font-bold text-sky-400">
@@ -2661,22 +3213,55 @@ return (
                           Trip Gallery
                         </h2>
 
-                        {trip.gallery && trip.gallery.length > 0 ? (
-                          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-                            {trip.gallery.map((img, index) => (
+                        {galleryImages.length > 0 ? (
+                          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
+                            {galleryPreviewImages.map((img, index) => (
                               <img
                                 key={index}
                                 src={img}
                                 alt={`${trip.title} ${index + 1}`}
                                 onClick={() => setSelectedImage(img)}
-                                className="h-40 w-full cursor-pointer rounded-xl object-cover transition hover:scale-105"
+                                className="h-32 w-full cursor-pointer rounded-xl object-cover transition hover:scale-105 sm:h-40"
                               />
                             ))}
+
+                            {!isGalleryExpanded && remainingGalleryCount > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => setIsGalleryExpanded(true)}
+                                className="group relative flex h-32 w-full items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-white/5 text-center transition hover:scale-[1.02] hover:border-orange-300/40 sm:h-40"
+                              >
+                                <img
+                                  src={galleryImages[GALLERY_PREVIEW_COUNT]}
+                                  alt={`${trip.title} more photos`}
+                                  className="absolute inset-0 h-full w-full object-cover opacity-30 transition group-hover:scale-105 group-hover:opacity-40"
+                                />
+                                <div className="absolute inset-0 bg-black/55" />
+                                <div className="relative px-4">
+                                  <p className="font-['Sora'] text-3xl font-semibold text-white">
+                                    +{remainingGalleryCount}
+                                  </p>
+                                  <p className="mt-2 text-sm uppercase tracking-[0.22em] text-slate-200">
+                                    More Photos
+                                  </p>
+                                </div>
+                              </button>
+                            )}
                           </div>
                         ) : (
                           <p className="text-gray-400">
                             No gallery images available for this trip.
                           </p>
+                        )}
+
+                        {isGalleryExpanded && remainingGalleryCount > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setIsGalleryExpanded(false)}
+                            className="mt-5 rounded-2xl border border-white/10 bg-white/6 px-5 py-3 text-sm font-medium text-slate-200 transition hover:border-orange-300/30 hover:bg-white/10"
+                          >
+                            Show Fewer Photos
+                          </button>
                         )}
                       </div>
                     )}
@@ -2686,7 +3271,7 @@ return (
                 </div>
 
                 <div className="md:col-span-1">
-                    <div className="glass-card rounded-[28px] p-6 md:sticky md:top-28">
+                    <div className="glass-card rounded-[28px] p-5 sm:p-6 md:sticky md:top-28">
                     <h2 className="mb-2 font-['Sora'] text-xl font-semibold text-white">
                       Book This Trip
                     </h2>
@@ -2763,7 +3348,7 @@ return (
                       }
                       className="w-full rounded-2xl bg-gradient-to-r from-green-500 to-emerald-500 px-6 py-3 font-semibold text-white shadow-[0_12px_30px_rgba(34,197,94,0.24)] transition hover:from-green-400 hover:to-emerald-400"
                     >
-                      Book Now
+                      Continue on WhatsApp
                     </button>
                   </div>
 </div>
@@ -2781,7 +3366,7 @@ return (
           <img
             src={selectedImage}
             alt="Selected trip"
-            className="max-h-[90vh] max-w-[90vw] rounded-xl"
+            className="max-h-[88dvh] max-w-[92vw] rounded-xl sm:max-h-[90vh] sm:max-w-[90vw]"
           />
         </div>
       )}
@@ -2805,7 +3390,7 @@ function Footer({ featuredTrip }) {
 
   return (
     <footer id="contact" className="relative z-10 mt-2 bg-black/80 text-white backdrop-blur-xl">
-      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 md:grid-cols-2 lg:grid-cols-4">
+      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 md:grid-cols-2 lg:grid-cols-4">
         <div id="footer-about" className="scroll-mt-28">
           <h3 className="mb-6 border-b border-orange-300/30 pb-2 font-['Sora'] text-2xl font-semibold">
             About Us
@@ -2900,6 +3485,17 @@ function Footer({ featuredTrip }) {
                 Instagram
               </a>
             </li>
+            <li className="flex items-center gap-2">
+              <FaGoogle className="text-sky-300" />
+              <a
+                href={GOOGLE_MAPS_SHARE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition hover:text-orange-300"
+              >
+                Google
+              </a>
+            </li>
           </ul>
         </div>
 
@@ -2912,7 +3508,7 @@ function Footer({ featuredTrip }) {
             <li className="flex gap-2">
               <FaMapMarkerAlt className="mt-1 text-orange-400" />
               <a
-                href="https://maps.app.goo.gl/FmbfyeuF7EhTaccW9?g_st=iwb"
+                href={GOOGLE_MAPS_SHARE_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="transition hover:text-orange-300"
@@ -2953,17 +3549,19 @@ function Footer({ featuredTrip }) {
             <div className="h-56 w-full">
               <iframe
                 title="The Meraki Tribe Location"
-                src="https://www.openstreetmap.org/export/embed.html?bbox=77.4300%2C28.6700%2C77.5000%2C28.7400&layer=mapnik&marker=28.7041%2C77.4497"
+                src={GOOGLE_MAPS_EMBED_URL}
                 width="100%"
                 height="100%"
                 style={{ border: 0 }}
                 loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                allowFullScreen
               ></iframe>
             </div>
           </div>
 
           <a
-            href="https://maps.app.goo.gl/FmbfyeuF7EhTaccW9?g_st=iwb"
+            href={GOOGLE_MAPS_SHARE_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="mt-3 inline-block text-sm font-medium text-orange-300 transition hover:text-orange-200"
@@ -2973,7 +3571,7 @@ function Footer({ featuredTrip }) {
         </div>
       </div>
 
-      <div className="border-t border-white/10 bg-gradient-to-r from-black/60 via-black/30 to-black/60 px-6 py-6 text-sm text-slate-300">
+      <div className="border-t border-white/10 bg-gradient-to-r from-black/60 via-black/30 to-black/60 px-4 py-6 text-sm text-slate-300 sm:px-6">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 md:flex-row">
           <div className="flex flex-wrap items-center gap-3">
             <img
@@ -3029,7 +3627,7 @@ function FloatingWhatsApp() {
       )}`}
       target="_blank"
       rel="noopener noreferrer"
-      className="animate-pulseSoft fixed bottom-4 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-green-500 text-2xl text-white shadow-[0_10px_30px_rgba(0,0,0,0.4)] transition duration-300 hover:scale-110 hover:bg-green-600 sm:bottom-6 sm:right-6 sm:h-16 sm:w-16 sm:text-3xl"
+      className="floating-safe-offset animate-pulseSoft fixed z-50 flex h-14 w-14 items-center justify-center rounded-full bg-green-500 text-2xl text-white shadow-[0_10px_30px_rgba(0,0,0,0.4)] transition duration-300 hover:scale-110 hover:bg-green-600 sm:h-16 sm:w-16 sm:text-3xl"
       aria-label="Chat on WhatsApp"
     >
       <FaWhatsapp />
@@ -3131,6 +3729,7 @@ function App() {
         <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
         <Route path="/terms-and-conditions" element={<TermsPage />} />
         <Route path="/refund-cancellation" element={<RefundPolicyPage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </>
   );

@@ -1,6 +1,22 @@
 import fallbackTrips from "./fallbackTrips";
 
 const normalizeApiBase = (value) => value?.trim().replace(/\/+$/, "") || "";
+const REQUEST_TIMEOUT_MS = 12000;
+
+const getDefaultApiBase = () => {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  if (!import.meta.env.DEV) {
+    return window.location.origin;
+  }
+
+  const { hostname } = window.location;
+  const resolvedHostname = hostname || "localhost";
+
+  return `http://${resolvedHostname}:5000`;
+};
 
 const slugifyTripValue = (value) =>
   value
@@ -12,13 +28,18 @@ const slugifyTripValue = (value) =>
     .replace(/^-+|-+$/g, "") || "";
 
 const API = normalizeApiBase(
-  import.meta.env.VITE_API_URL ||
-    (import.meta.env.DEV
-      ? "http://localhost:5000"
-      : typeof window !== "undefined"
-        ? window.location.origin
-        : "")
+  import.meta.env.VITE_API_URL || getDefaultApiBase()
 );
+
+const buildApiUrl = (path) => {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+
+  if (!API) {
+    return normalizedPath;
+  }
+
+  return new URL(normalizedPath, `${API}/`).toString();
+};
 
 const normalizeTrip = (trip, index) => ({
   ...trip,
@@ -29,6 +50,7 @@ const normalizeTrip = (trip, index) => ({
   inclusions: Array.isArray(trip?.inclusions) ? trip.inclusions : [],
   exclusions: Array.isArray(trip?.exclusions) ? trip.exclusions : [],
   gallery: Array.isArray(trip?.gallery) ? trip.gallery : [],
+  thingsToPack: Array.isArray(trip?.thingsToPack) ? trip.thingsToPack : [],
   faqs: Array.isArray(trip?.faqs) ? trip.faqs : [],
   batchDates: Array.isArray(trip?.batchDates) ? trip.batchDates : [],
   packages: Array.isArray(trip?.packages) ? trip.packages : [],
@@ -36,6 +58,22 @@ const normalizeTrip = (trip, index) => ({
 
 const normalizeTrips = (trips) =>
   (Array.isArray(trips) ? trips : []).map((trip, index) => normalizeTrip(trip, index));
+
+const normalizeReview = (review, index) => ({
+  id: String(review?.id || `review-${index + 1}`),
+  name: review?.name?.trim() || "Google traveler",
+  place: review?.place?.trim() || "Google Reviews",
+  tripName: review?.tripName?.trim() || "Reviewed on Google",
+  month: review?.month?.trim() || "Recently",
+  rating: Math.max(1, Math.min(5, Math.round(Number(review?.rating) || 5))),
+  image: review?.image?.trim() || "/logo.png",
+  text: review?.text?.trim() || "Shared a review on Google.",
+  authorUrl: review?.authorUrl?.trim() || "",
+  reviewUrl: review?.reviewUrl?.trim() || "",
+});
+
+const normalizeReviews = (reviews) =>
+  (Array.isArray(reviews) ? reviews : []).map((review, index) => normalizeReview(review, index));
 
 const matchesTripId = (trip, tripId) => {
   const requestedId = slugifyTripValue(tripId);
@@ -53,8 +91,19 @@ const matchesTripId = (trip, tripId) => {
   return lookupKeys.has(tripId) || lookupKeys.has(requestedId);
 };
 
-const readJson = async (path) => {
-  const response = await fetch(`${API}${path}`);
+const readJson = async (path, options = {}) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  let response;
+
+  try {
+    response = await fetch(buildApiUrl(path), {
+      ...options,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!response.ok) {
     const error = new Error(`Request failed with status ${response.status}`);
@@ -63,6 +112,13 @@ const readJson = async (path) => {
   }
 
   return response.json();
+};
+
+export const resolveApiAssetUrl = (assetPath) => {
+  if (!assetPath) return "#";
+
+  const normalizedAssetPath = assetPath.replace(/^\/+/, "");
+  return buildApiUrl(normalizedAssetPath);
 };
 
 export const loadTrips = async () => {
@@ -84,6 +140,37 @@ export const loadTrips = async () => {
     return {
       trips: normalizeTrips(fallbackTrips),
       errorMessage: "Live trip data is unavailable right now. Showing bundled trip details instead.",
+      usingFallback: true,
+    };
+  }
+};
+
+export const loadBusinessReviews = async () => {
+  try {
+    const payload = await readJson("/reviews", {
+      cache: "no-store",
+      headers: {
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+      },
+    });
+    const reviews = normalizeReviews(payload?.reviews);
+
+    if (!reviews.length) {
+      throw new Error("No reviews returned from API");
+    }
+
+    return {
+      reviews,
+      errorMessage: "",
+      usingFallback: false,
+    };
+  } catch (error) {
+    console.error("Unable to load Google reviews. Keeping bundled review cards.", error);
+
+    return {
+      reviews: [],
+      errorMessage: "Google reviews are unavailable right now.",
       usingFallback: true,
     };
   }

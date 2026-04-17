@@ -19,15 +19,23 @@
   --brand-glow: rgba(245, 158, 11, 0.24);
 }
 
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
 body {
   margin: 0;
+  min-height: 100dvh;
   font-family: "Manrope", "Segoe UI", sans-serif;
   color: var(--text-main);
   background:
     radial-gradient(circle at top left, rgba(245, 158, 11, 0.13), transparent 30%),
     radial-gradient(circle at top right, rgba(15, 118, 110, 0.13), transparent 28%),
     linear-gradient(180deg, #05060a 0%, #080b12 42%, #05070d 100%);
-  overflow-x: hidden;
+  overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
 }
 
 html {
@@ -48,6 +56,31 @@ img,
 video {
   max-width: 100%;
   height: auto;
+}
+
+iframe {
+  display: block;
+  width: 100%;
+}
+
+a,
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+li,
+span {
+  overflow-wrap: anywhere;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
 }
 
 @keyframes floatOne {
@@ -149,16 +182,27 @@ video {
   animation: marquee 18s linear infinite;
 }
 
+.animate-marquee.paused {
+  animation-play-state: paused;
+}
+
+.review-text-clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+  overflow: hidden;
+}
+
 .glass-card {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03)),
     var(--bg-elevated);
   border: 1px solid var(--stroke-soft);
   box-shadow:
-    0 24px 70px rgba(0, 0, 0, 0.34),
+    0 20px 54px rgba(0, 0, 0, 0.28),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
 .touch-card {
@@ -216,11 +260,11 @@ video {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  opacity: 0.18;
+  opacity: 0.12;
   background-image:
     linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-  background-size: 32px 32px;
+  background-size: 40px 40px;
   mask-image: radial-gradient(circle at center, black 50%, transparent 100%);
 }
 
@@ -250,12 +294,44 @@ video {
 }
 
 .video-smooth {
-  transform: translateZ(0);
+  transform: translate3d(0, 0, 0) scale(1.02);
   backface-visibility: hidden;
-  will-change: transform;
+  will-change: opacity, transform;
+}
+
+.modal-scroll-shell {
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.floating-safe-offset {
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  right: calc(1rem + env(safe-area-inset-right, 0px));
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-card,
+  .theme-card {
+    background: rgba(9, 12, 19, 0.94);
+  }
+}
+
+@supports not (mask-image: radial-gradient(circle at center, black 50%, transparent 100%)) {
+  .noise-overlay::before {
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
 }
 
 @media (max-width: 640px) {
+  button,
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
   .animate-marquee {
     animation-duration: 24s;
   }
@@ -268,10 +344,20 @@ video {
 
   .glass-card {
     border-radius: 24px;
+    box-shadow:
+      0 16px 36px rgba(0, 0, 0, 0.24),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
 
   .section-title {
     line-height: 1.08;
+  }
+
+  .noise-overlay::before {
+    opacity: 0.08;
+    background-size: 48px 48px;
   }
 
   body {
@@ -279,6 +365,13 @@ video {
       radial-gradient(circle at top left, rgba(245, 158, 11, 0.1), transparent 30%),
       radial-gradient(circle at top right, rgba(15, 118, 110, 0.1), transparent 28%),
       linear-gradient(180deg, #05060a 0%, #070a11 42%, #05070d 100%);
+  }
+}
+
+@media (min-width: 640px) {
+  .floating-safe-offset {
+    bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+    right: calc(1.5rem + env(safe-area-inset-right, 0px));
   }
 }
 
