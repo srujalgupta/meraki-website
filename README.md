@@ -65,7 +65,9 @@ npm run check
 
 - Build command: `npm run build`
 - Output directory: `dist`
-- Set `VITE_API_URL` if backend is on a different domain
+- Local development automatically targets `http://<current-host>:5000`
+- On Vercel, set `API_ORIGIN=https://your-render-service.onrender.com` so `/api/*` proxies to Render
+- Set `VITE_API_URL` only when you want the frontend to call a backend origin directly instead of the Vercel proxy
 - Netlify fallback is included with `frontend/public/_redirects`
 - Vercel fallback is included with `frontend/vercel.json`
 
@@ -75,8 +77,39 @@ npm run check
 - Use Node.js 18+
 - Set `NODE_ENV=production`
 - Set `CLIENT_ORIGINS` to your deployed frontend origin
+- `CLIENT_ORIGINS` can include wildcards such as `https://*.vercel.app`
 - Set `MONGO_URI` for live editable trip data
+- Set `GOOGLE_PLACES_API_KEY` and `GOOGLE_PLACES_PLACE_ID` if you want live Google reviews
 - Keep `MONGO_URI` empty only if you intentionally want bundled sample-data mode
+
+## Vercel + Render Setup
+
+### Vercel
+
+- Root directory: `frontend`
+- Build command: `npm run build`
+- Output directory: `dist`
+- Environment variable: `API_ORIGIN=https://your-render-service.onrender.com`
+- Optional environment variable: `VITE_API_URL=` leave empty when using the Vercel proxy
+
+### Render
+
+- Root directory: `backend`
+- Build command: `npm install`
+- Start command: `npm start`
+- Required environment variables:
+  - `NODE_ENV=production`
+  - `PORT=10000` or leave unset and let Render inject it
+  - `CLIENT_ORIGINS=https://your-site.vercel.app,https://*.vercel.app`
+  - `MONGO_URI=...` for live trip data
+  - `GOOGLE_PLACES_API_KEY=...`
+  - `GOOGLE_PLACES_PLACE_ID=...`
+
+### Local
+
+- Backend: `cd backend && npm start`
+- Frontend: `cd frontend && npm run dev`
+- No frontend env file is required for the usual local setup
 
 ## Current Readiness
 

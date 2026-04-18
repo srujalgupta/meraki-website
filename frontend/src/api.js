@@ -2,20 +2,42 @@ import fallbackTrips from "./fallbackTrips";
 
 const normalizeApiBase = (value) => value?.trim().replace(/\/+$/, "") || "";
 const REQUEST_TIMEOUT_MS = 12000;
+const LOCALHOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
+
+const isPrivateHostname = (hostname = "") => {
+  const normalizedHostname = hostname.toLowerCase();
+
+  if (LOCALHOSTS.has(normalizedHostname)) {
+    return true;
+  }
+
+  if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(normalizedHostname)) {
+    return true;
+  }
+
+  if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(normalizedHostname)) {
+    return true;
+  }
+
+  const match = normalizedHostname.match(/^172\.(\d{1,3})\.\d{1,3}\.\d{1,3}$/);
+  return Boolean(match && Number(match[1]) >= 16 && Number(match[1]) <= 31);
+};
 
 const getDefaultApiBase = () => {
   if (typeof window === "undefined") {
     return "";
   }
 
-  if (!import.meta.env.DEV) {
-    return window.location.origin;
-  }
-
   const { hostname } = window.location;
   const resolvedHostname = hostname || "localhost";
 
-  return `http://${resolvedHostname}:5000`;
+  // Local dev and LAN phone testing should hit the local backend directly.
+  if (import.meta.env.DEV || isPrivateHostname(resolvedHostname)) {
+    return `http://${resolvedHostname}:5000`;
+  }
+
+  // Hosted frontend deployments should use the colocated proxy route by default.
+  return "/api";
 };
 
 const slugifyTripValue = (value) =>

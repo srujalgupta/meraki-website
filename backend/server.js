@@ -22,6 +22,45 @@ const CLIENT_ORIGINS = (process.env.CLIENT_ORIGINS || "http://localhost:3000,htt
   .filter(Boolean);
 const allowAllOrigins = CLIENT_ORIGINS.includes("*");
 
+const normalizeOrigin = (origin = "") => {
+  const trimmedOrigin = origin.trim();
+
+  if (!trimmedOrigin || trimmedOrigin.includes("*")) {
+    return trimmedOrigin.replace(/\/+$/, "");
+  }
+
+  try {
+    return new URL(trimmedOrigin).origin;
+  } catch {
+    return trimmedOrigin.replace(/\/+$/, "");
+  }
+};
+
+const escapeRegex = (value = "") => value.replace(/[|\\{}()[\]^$+?.]/g, "\\$&");
+
+const configuredOriginMatchers = CLIENT_ORIGINS.map((origin) => {
+  const normalizedOrigin = normalizeOrigin(origin);
+
+  if (!normalizedOrigin || normalizedOrigin === "*") {
+    return null;
+  }
+
+  if (!normalizedOrigin.includes("*")) {
+    return {
+      type: "exact",
+      value: normalizedOrigin,
+    };
+  }
+
+  return {
+    type: "pattern",
+    value: new RegExp(
+      `^${normalizedOrigin.split("*").map(escapeRegex).join(".*")}$`,
+      "i"
+    ),
+  };
+}).filter(Boolean);
+
 const isPrivateHostname = (hostname = "") => {
   const normalizedHostname = hostname.toLowerCase();
 
@@ -47,7 +86,19 @@ const isPrivateHostname = (hostname = "") => {
 };
 
 const isAllowedOrigin = (origin) => {
-  if (!origin || allowAllOrigins || CLIENT_ORIGINS.includes(origin)) {
+  if (!origin || allowAllOrigins) {
+    return true;
+  }
+
+  const normalizedOrigin = normalizeOrigin(origin);
+
+  if (
+    configuredOriginMatchers.some((matcher) =>
+      matcher.type === "exact"
+        ? matcher.value === normalizedOrigin
+        : matcher.value.test(normalizedOrigin)
+    )
+  ) {
     return true;
   }
 
