@@ -60,6 +60,10 @@ const buildApiUrl = (path) => {
     return normalizedPath;
   }
 
+  if (API.startsWith("/")) {
+    return `${API}${normalizedPath}`;
+  }
+
   return new URL(normalizedPath, `${API}/`).toString();
 };
 
